@@ -437,13 +437,14 @@
             border-radius: 50%;
             margin: 0 auto;
             margin-bottom: 15px;
-            background: linear-gradient(135deg, #ff9a9e, #fecfef);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            color: #fff;
+            overflow: hidden;
             box-shadow: 0 4px 12px rgba(255, 154, 158, 0.4);
+        }
+
+        .modal-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .modal-title {
@@ -534,7 +535,7 @@
         <div class="modal-content">
             <button class="modal-close" onclick="closeModal()">×</button>
             <div class="modal-header">
-                <div class="modal-avatar">返</div>
+                <div class="modal-avatar"><img src="icon.png" alt="重返未来1999"></div>
                 <div class="modal-title">重返未来1999 征集分析工具</div>
                 <div class="modal-subtitle">请输入您的角色征集分析链接</div>
             </div>
