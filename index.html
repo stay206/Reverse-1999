@@ -525,9 +525,9 @@
             <span class="action-btn-icon">↻</span>
             <span class="action-btn-text">更新</span>
         </div>
-        <div class="action-btn share" onclick="alert('分享功能开发中')">
-            <span class="action-btn-icon">↑</span>
-            <span class="action-btn-text">分享</span>
+        <div class="action-btn share" onclick="openSettingsModal()">
+            <span class="action-btn-icon">⚙️</span>
+            <span class="action-btn-text">设置</span>
         </div>
     </div>
 
@@ -543,6 +543,21 @@
                 <input type="text" class="modal-input" placeholder="请输入您的角色征集分析链接">
                 <div class="modal-hint">例：https://game-re-service.sl916.com/query/......</div>
                 <button class="modal-btn">绑定账号</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeSettingsModal()">×</button>
+            <div class="modal-header">
+                <div class="modal-avatar"><img src="icon.png" alt="重返未来1999"></div>
+                <div class="modal-title">设置</div>
+                <div class="modal-subtitle">应用设置</div>
+            </div>
+            <div class="modal-body">
+                <div class="settings-content">
+                </div>
             </div>
         </div>
     </div>
@@ -742,6 +757,20 @@
         document.getElementById('updateModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeModal();
+            }
+        });
+
+        function openSettingsModal() {
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        document.getElementById('settingsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSettingsModal();
             }
         });
 
