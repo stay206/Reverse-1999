@@ -221,18 +221,10 @@
         }
 
         .stats-bar {
-            margin-top: 15px;
             margin-bottom: 15px;
             background: rgba(255,255,255,0.03);
             border-radius: 12px;
             padding: 15px;
-        }
-
-        .stats-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
         }
 
         .stats-title {
@@ -280,6 +272,16 @@
 
         .toggle-slider.active::after {
             transform: translateX(20px);
+        }
+
+        .toggle-bar {
+            margin-top: 15px;
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            justify-content: flex-end;
         }
 
         .stats-grid {
@@ -684,14 +686,14 @@
             });
 
             const html = `
-                <div class="stats-bar">
-                    <div class="stats-header">
-                        <div class="stats-title">统计数据</div>
-                        <div class="toggle-switch" onclick="toggleNoSixStarPool()">
-                            <span class="toggle-label">隐藏空池</span>
-                            <div class="toggle-slider" id="toggleNoSixStar"></div>
-                        </div>
+                <div class="toggle-bar">
+                    <div class="toggle-switch" onclick="toggleNoSixStarPool()">
+                        <span class="toggle-label">隐藏空池</span>
+                        <div class="toggle-slider" id="toggleNoSixStar"></div>
                     </div>
+                </div>
+                <div class="stats-bar">
+                    <div class="stats-title">统计数据</div>
                     <div class="stats-grid">
                         <div class="stat-item">
                             <div class="stat-value">${stats.totalSixStars}</div>
