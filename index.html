@@ -292,10 +292,6 @@
             background: linear-gradient(135deg, #6b9e31, #5a8529);
         }
 
-        .action-btn.download {
-            background: linear-gradient(135deg, #236b8b, #29859e);
-        }
-
         .action-btn-icon {
             font-size: 18px;
             color: #fff;
@@ -342,10 +338,6 @@
         <div class="action-btn share" onclick="alert('分享功能开发中')">
             <span class="action-btn-icon">↑</span>
             <span class="action-btn-text">分享</span>
-        </div>
-        <div class="action-btn download" onclick="downloadAllImages()">
-            <span class="action-btn-icon">↓</span>
-            <span class="action-btn-text">下载</span>
         </div>
     </div>
 
@@ -444,7 +436,7 @@
             const hexId = parseInt(charId).toString(16).toUpperCase().padStart(4, '0');
             const dir1 = hexId[0];
             const dir2 = hexId.substring(0, 2);
-            return `https://huiji-thumb.huijistatic.com/res1999/uploads/thumb/${dir1}/${dir2}/Portrait-${charId}01.webp/289px-Portrait-${charId}01.webp.png`;
+            return `https://huiji-thumb.huijistatic.com/res1999/uploads/thumb/${dir1}/${dir2}/Headicon_large-${charId}01.png/114px-Headicon_large-${charId}01.png`;
         }
 
         function renderPoolItem(poolName, poolData) {
@@ -522,68 +514,6 @@
                 document.getElementById('content').innerHTML = `<div class="loading">加载失败: ${e.message}</div>`;
                 console.error('Load failed:', e);
             }
-        }
-
-        async function downloadAllImages() {
-            const charsWithImages = [];
-            Object.keys(allCharNames).forEach(id => {
-                charsWithImages.push({ id: parseInt(id), name: allCharNames[id] });
-            });
-
-            if (charsWithImages.length === 0) {
-                alert('请先加载数据');
-                return;
-            }
-
-            const confirmText = `确认下载全部 ${charsWithImages.length} 个角色图片？\n文件名格式：角色ID.png`;
-            if (!confirm(confirmText)) return;
-
-            let success = 0;
-            let failed = 0;
-            const total = charsWithImages.length;
-
-            document.getElementById('content').innerHTML = '<div class="loading">正在下载图片...\n0/' + total + '</div>';
-
-            for (let i = 0; i < charsWithImages.length; i++) {
-                const char = charsWithImages[i];
-                try {
-                    await downloadImage(char.id);
-                    success++;
-                } catch (e) {
-                    failed++;
-                }
-
-                document.getElementById('content').innerHTML = `<div class="loading">正在下载图片...\n${success + failed}/${total}\n成功: ${success} | 失败: ${failed}</div>`;
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-
-            alert(`下载完成！\n成功: ${success}\n失败: ${failed}`);
-            loadData();
-        }
-
-        async function downloadImage(charId) {
-            return new Promise((resolve, reject) => {
-                const url = getCharImageUrl(charId);
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
-
-                    const link = document.createElement('a');
-                    link.download = `${charId}.png`;
-                    link.href = canvas.toDataURL('image/png');
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    resolve();
-                };
-                img.onerror = () => reject(new Error(`Failed to download ${charId}`));
-                img.src = url;
-            });
         }
 
         loadData();
