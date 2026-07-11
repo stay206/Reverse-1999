@@ -677,7 +677,7 @@
             for (const level of starLevels) {
                 try {
                     const text = await fetchText(`characters/${level}/gainIds.josn`);
-                    const lines = text.trim().split('\n');
+                    const lines = text.trim().split(/\r?\n/);
                     lines.forEach(line => {
                         const match = line.match(/^(\d+):(.+),?$/);
                         if (match) {
@@ -698,11 +698,11 @@
         async function loadPageData() {
             const backup = localStorage.getItem('pageData_backup');
             if (backup) {
-                const lines = backup.trim().split('\n');
+                const lines = backup.trim().split(/\r?\n/);
                 const data = [];
                 lines.forEach(line => {
                     try {
-                        const jsonStr = line.replace(/,$/, '');
+                        const jsonStr = line.trim().replace(/,$/, '');
                         const obj = JSON.parse(jsonStr);
                         data.push(obj);
                     } catch (e) {
@@ -716,11 +716,11 @@
             }
 
             const text = await fetchText('pageData.josn');
-            const lines = text.trim().split('\n');
+            const lines = text.trim().split(/\r?\n/);
             const data = [];
             lines.forEach(line => {
                 try {
-                    const jsonStr = line.replace(/,$/, '');
+                    const jsonStr = line.trim().replace(/,$/, '');
                     const obj = JSON.parse(jsonStr);
                     data.push(obj);
                 } catch (e) {
@@ -736,7 +736,35 @@
             console.log('Data saved to localStorage backup');
         }
 
-        function analyzeData(pageData) {
+        let poolUpMap = {};
+
+        async function loadPoolUpMap(pageData) {
+            poolUpMap = {};
+            const seen = {};
+            pageData.forEach(record => {
+                const key = `${record.poolType}|${record.poolName}`;
+                seen[key] = true;
+            });
+
+            for (const key of Object.keys(seen)) {
+                const sepIdx = key.indexOf('|');
+                const poolType = key.substring(0, sepIdx);
+                const poolName = key.substring(sepIdx + 1);
+                const filePath = `poolType/${poolType}/${poolName}.josn`;
+                try {
+                    const text = await fetchText(filePath);
+                    const firstLine = text.trim().split('\n')[0];
+                    const match = firstLine.match(/^up:(\d+):/);
+                    poolUpMap[poolName] = match ? parseInt(match[1]) : 0;
+                } catch (e) {
+                    console.warn(`Failed to load pool up data: ${filePath}`, e);
+                    poolUpMap[poolName] = 0;
+                }
+            }
+            console.log('Pool up map loaded:', poolUpMap);
+        }
+
+        function analyzeData(pageData, poolUpMap) {
             const pools = {};
             let totalDraws = 0;
             let totalSixStars = 0;
@@ -787,11 +815,15 @@
                     if (sixStarIds.includes(charId)) {
                         totalSixStars++;
 
+                        const upId = poolUpMap[poolName] || 0;
+                        const isBad = upId !== 0 && upId !== charId;
+                        if (isBad) totalBad++;
+
                         pools[poolName].sixStars.push({
                             id: charId,
                             name: allCharNames[charId] || `角色${charId}`,
                             draws: currentDraw,
-                            isBad: false
+                            isBad: isBad
                         });
                         resetCurrentDraw();
                     }
@@ -895,7 +927,8 @@
             try {
                 await loadCharacterData();
                 const pageData = await loadPageData();
-                const stats = analyzeData(pageData);
+                await loadPoolUpMap(pageData);
+                const stats = analyzeData(pageData, poolUpMap);
                 render(stats);
             } catch (e) {
                 document.getElementById('content').innerHTML = `<div class="loading">加载失败: ${e.message}</div>`;
