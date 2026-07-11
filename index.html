@@ -555,6 +555,36 @@
         .settings-save-btn {
             margin-top: 5px;
         }
+
+        .update-result {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.6;
+            display: none;
+        }
+
+        .update-result.success {
+            display: block;
+            background: rgba(74, 124, 35, 0.15);
+            color: #6b9e31;
+            border: 1px solid rgba(74, 124, 35, 0.3);
+        }
+
+        .update-result.error {
+            display: block;
+            background: rgba(168, 50, 50, 0.15);
+            color: #a83232;
+            border: 1px solid rgba(168, 50, 50, 0.3);
+        }
+
+        .update-result.loading {
+            display: block;
+            background: rgba(212, 165, 116, 0.15);
+            color: #d4a574;
+            border: 1px solid rgba(212, 165, 116, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -585,13 +615,14 @@
             <button class="modal-close" onclick="closeModal()">×</button>
             <div class="modal-header">
                 <div class="modal-avatar"><img src="icon.png" alt="重返未来1999"></div>
-                <div class="modal-title">重返未来1999 征集分析工具</div>
-                <div class="modal-subtitle">请输入您的角色征集分析链接</div>
+                <div class="modal-title">更新抽卡数据</div>
+                <div class="modal-subtitle">从征集分析链接获取数据</div>
             </div>
             <div class="modal-body">
-                <input type="text" class="modal-input" placeholder="请输入您的角色征集分析链接">
+                <input type="text" class="modal-input" id="updateLinkInput" placeholder="请输入征集分析链接">
                 <div class="modal-hint">例：https://game-re-service.sl916.com/query/......</div>
-                <button class="modal-btn">绑定账号</button>
+                <button class="modal-btn" onclick="fetchAndMergeData()">获取并合并数据</button>
+                <div id="updateResult" class="update-result"></div>
             </div>
         </div>
     </div>
@@ -655,6 +686,25 @@
         }
 
         async function loadPageData() {
+            const backup = localStorage.getItem('pageData_backup');
+            if (backup) {
+                const lines = backup.trim().split('\n');
+                const data = [];
+                lines.forEach(line => {
+                    try {
+                        const jsonStr = line.replace(/,$/, '');
+                        const obj = JSON.parse(jsonStr);
+                        data.push(obj);
+                    } catch (e) {
+                        console.warn('Failed to parse backup line:', line, e);
+                    }
+                });
+                if (data.length > 0) {
+                    console.log('Loaded from localStorage backup:', data.length, 'records');
+                    return data;
+                }
+            }
+
             const text = await fetchText('pageData.josn');
             const lines = text.trim().split('\n');
             const data = [];
@@ -668,6 +718,12 @@
                 }
             });
             return data;
+        }
+
+        async function savePageData(data) {
+            const content = data.map(item => JSON.stringify(item) + ',').join('\n');
+            localStorage.setItem('pageData_backup', content);
+            console.log('Data saved to localStorage backup');
         }
 
         function analyzeData(pageData) {
@@ -749,13 +805,11 @@
         }
 
         function render(stats) {
-            const poolNames = ['湖的涟漪', '第一滴雨', '剥茧为名', '湖的应许', '湖心追述', '故事的新啼'];
+            const poolNames = Object.keys(stats.pools).sort();
             
             let poolsHtml = '';
             poolNames.forEach(name => {
-                if (stats.pools[name]) {
-                    poolsHtml += renderPoolItem(name, stats.pools[name]);
-                }
+                poolsHtml += renderPoolItem(name, stats.pools[name]);
             });
 
             const html = `
@@ -788,7 +842,7 @@
             document.getElementById('content').innerHTML = html;
         }
 
-        async function loadData() {
+        async function initApp() {
             document.getElementById('content').innerHTML = '<div class="loading">加载中...</div>';
             try {
                 await loadCharacterData();
@@ -801,7 +855,7 @@
             }
         }
 
-        loadData();
+        initApp();
 
         function openModal() {
             document.getElementById('updateModal').classList.add('active');
@@ -870,6 +924,119 @@
                 loadGitHubToken();
             }
         });
+
+        async function fetchAndMergeData() {
+            const link = document.getElementById('updateLinkInput').value.trim();
+            const resultDiv = document.getElementById('updateResult');
+
+            if (!link || !link.startsWith('https://game-re-service.sl916.com/')) {
+                resultDiv.className = 'update-result error';
+                resultDiv.innerHTML = '请输入有效的链接格式：<br>https://game-re-service.sl916.com/*';
+                return;
+            }
+
+            resultDiv.className = 'update-result loading';
+            resultDiv.innerHTML = '正在获取数据...';
+
+            try {
+                const response = await fetch(link);
+                const text = await response.text();
+                
+                let data;
+                if (text.startsWith('1→')) {
+                    data = JSON.parse(text.substring(2));
+                } else {
+                    data = JSON.parse(text);
+                }
+
+                if (data.code !== 200 || !data.data || !data.data.pageData) {
+                    resultDiv.className = 'update-result error';
+                    resultDiv.innerHTML = '数据获取失败：返回格式不正确';
+                    return;
+                }
+
+                const newPageData = data.data.pageData;
+                await mergePageData(newPageData);
+
+                resultDiv.className = 'update-result success';
+                resultDiv.innerHTML = `成功获取并合并 ${newPageData.length} 条抽卡记录！<br>页面将自动刷新...`;
+
+                setTimeout(() => {
+                    initApp();
+                    closeModal();
+                    resultDiv.className = 'update-result';
+                    resultDiv.innerHTML = '';
+                }, 1500);
+
+            } catch (error) {
+                resultDiv.className = 'update-result error';
+                resultDiv.innerHTML = `获取失败：${error.message}`;
+            }
+        }
+
+        async function mergePageData(newPageData) {
+            const existingData = await loadPageData();
+            
+            const existingMap = new Map();
+            existingData.forEach(item => {
+                const key = `${item.createTime}_${item.summonType}_${item.gainIds.join(',')}`;
+                existingMap.set(key, item);
+            });
+
+            let addedCount = 0;
+            let newPools = [];
+
+            for (const newItem of newPageData) {
+                const key = `${newItem.createTime}_${newItem.summonType}_${newItem.gainIds.join(',')}`;
+                
+                if (!existingMap.has(key)) {
+                    existingData.push(newItem);
+                    addedCount++;
+
+                    if (!await poolTypeExists(newItem.poolType)) {
+                        if (!newPools.includes(newItem.poolType)) {
+                            newPools.push(newItem.poolType);
+                        }
+                    }
+                }
+            }
+
+            existingData.sort((a, b) => new Date(a.createTime) - new Date(b.createTime));
+
+            await savePageData(existingData);
+
+            for (const poolType of newPools) {
+                const poolName = newPageData.find(item => item.poolType === poolType)?.poolName || `卡池${poolType}`;
+                await createNewPoolFile(poolType, poolName);
+            }
+        }
+
+        async function poolTypeExists(poolType) {
+            try {
+                await fetch(`poolType/${poolType}/`);
+                return true;
+            } catch {
+                try {
+                    const files = await fetchPoolTypes();
+                    return files.some(f => f.startsWith(`${poolType}/`));
+                } catch {
+                    return false;
+                }
+            }
+        }
+
+        async function createNewPoolFile(poolType, poolName) {
+            const content = `"${poolName}"`;
+            try {
+                await fetch(`poolType/${poolType}/${encodeURIComponent(poolName)}.josn`, {
+                    method: 'PUT',
+                    body: content,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            } catch {
+                console.log(`无法创建新池文件 poolType/${poolType}/${poolName}.josn`);
+            }
+        }
 
         let hideNoSixStar = false;
 
