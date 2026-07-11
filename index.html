@@ -38,13 +38,14 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #d4a574, #8b6914);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            color: #fff;
+            overflow: hidden;
             box-shadow: 0 0 10px rgba(212, 165, 116, 0.3);
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .title {
@@ -507,7 +508,7 @@
 <body>
     <div class="header">
         <div class="header-left">
-            <div class="avatar">返</div>
+            <div class="avatar"><img src="https://img-tc.tapimg.com/market/images/2873e888f025bf735574fe3d75252904.png" alt="重返未来1999"></div>
             <div>
                 <div class="title">重返未来：1999</div>
             </div>
