@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>重返未来1999 - 抽卡统计</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(180deg, #2d1f1a 0%, #1a1210 100%);
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            color: #c4b5a0;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #d4a574, #8b6914);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(212, 165, 116, 0.3);
+        }
+
+        .title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+        }
+
+        .header-btn {
+            font-size: 14px;
+            color: #8b7355;
+        }
+
+        .pool-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .pool-item {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 18px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pool-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, #8b6914, #d4a574);
+        }
+
+        .pool-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .pool-name {
+            font-size: 15px;
+            color: #e8dcc8;
+            font-weight: 500;
+        }
+
+        .pool-total {
+            font-size: 16px;
+            font-weight: 600;
+            color: #c4b5a0;
+        }
+
+        .pool-total span {
+            color: #d4a574;
+        }
+
+        .six-star-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .six-star-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 12px;
+            transition: transform 0.2s;
+        }
+
+        .six-star-item:active {
+            transform: scale(0.98);
+        }
+
+        .char-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #8b6914 0%, #d4a574 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(139, 105, 20, 0.3);
+            position: relative;
+        }
+
+        .char-icon::after {
+            content: '★★★★★★';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 8px;
+            color: #d4a574;
+            letter-spacing: -1px;
+        }
+
+        .char-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .char-name {
+            font-size: 14px;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .char-id {
+            font-size: 11px;
+            color: #8b7355;
+        }
+
+        .draw-count {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .draw-badge {
+            background: linear-gradient(90deg, #4a7c23, #6b9e31);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(74, 124, 35, 0.3);
+            white-space: nowrap;
+        }
+
+        .draw-badge span {
+            color: #d4e8b8;
+        }
+
+        .bad-tag {
+            background: linear-gradient(90deg, #8b2323, #a83232);
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        .no-six-star {
+            text-align: center;
+            padding: 20px 0;
+            color: #5a4a3a;
+            font-size: 13px;
+            font-style: italic;
+        }
+
+        .stats-bar {
+            margin-top: 30px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .stats-title {
+            font-size: 14px;
+            color: #8b7355;
+            margin-bottom: 15px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #d4a574;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #8b7355;
+            margin-top: 4px;
+        }
+
+        .action-buttons {
+            position: fixed;
+            right: 20px;
+            bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .action-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        .action-btn.update {
+            background: linear-gradient(135deg, #d4a574, #b8966a);
+        }
+
+        .action-btn.share {
+            background: linear-gradient(135deg, #6b9e31, #5a8529);
+        }
+
+        .action-btn-icon {
+            font-size: 18px;
+            color: #fff;
+        }
+
+        .action-btn-text {
+            font-size: 9px;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px 20px;
+            color: #8b7355;
+            font-size: 14px;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                max-width: 480px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <div class="avatar">返</div>
+            <div>
+                <div class="title">重返未来：1999</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="content" class="loading">加载中...</div>
+
+    <div class="action-buttons">
+        <div class="action-btn update" onclick="loadData()">
+            <span class="action-btn-icon">↻</span>
+            <span class="action-btn-text">更新</span>
+        </div>
+        <div class="action-btn share" onclick="alert('分享功能开发中')">
+            <span class="action-btn-icon">↑</span>
+            <span class="action-btn-text">分享</span>
+        </div>
+    </div>
+
+    <script>
+        let allCharNames = {};
+        let sixStarIds = [];
+
+        async function fetchText(url) {
+            const response = await fetch(url);
+            return response.text();
+        }
+
+        async function loadCharacterData() {
+            allCharNames = {};
+            sixStarIds = [];
+
+            const starLevels = [2, 3, 4, 5, 6];
+            for (const level of starLevels) {
+                try {
+                    const text = await fetchText(`characters/${level}/gainIds.josn`);
+                    const lines = text.trim().split('\n');
+                    lines.forEach(line => {
+                        const match = line.match(/^(\d+):(.+),?$/);
+                        if (match) {
+                            const id = parseInt(match[1]);
+                            const name = match[2].trim();
+                            allCharNames[id] = name;
+                            if (level === 6) {
+                                sixStarIds.push(id);
+                            }
+                        }
+                    });
+                } catch (e) {
+                    console.warn(`Failed to load characters/${level}/gainIds.josn`, e);
+                }
+            }
+        }
+
+        async function loadPageData() {
+            const text = await fetchText('pageData.josn');
+            const lines = text.trim().split('\n');
+            const data = [];
+            lines.forEach(line => {
+                try {
+                    const jsonStr = line.replace(/,$/, '');
+                    const obj = JSON.parse(jsonStr);
+                    data.push(obj);
+                } catch (e) {
+                    console.warn('Failed to parse line:', line, e);
+                }
+            });
+            return data;
+        }
+
+        function analyzeData(pageData) {
+            const pools = {};
+            let totalDraws = 0;
+            let totalSixStars = 0;
+            let totalBad = 0;
+
+            const sortedData = [...pageData].sort((a, b) => new Date(a.createTime) - new Date(b.createTime));
+
+            sortedData.forEach(record => {
+                const poolName = record.poolName;
+                const drawCount = parseInt(record.summonType);
+                totalDraws += drawCount;
+
+                if (!pools[poolName]) {
+                    pools[poolName] = { total: 0, currentDraw: 0, sixStars: [] };
+                }
+
+                pools[poolName].total += drawCount;
+
+                record.gainIds.forEach((charId, index) => {
+                    pools[poolName].currentDraw++;
+
+                    if (sixStarIds.includes(charId)) {
+                        totalSixStars++;
+                        const drawsSinceLast = pools[poolName].currentDraw;
+
+                        pools[poolName].sixStars.push({
+                            id: charId,
+                            name: allCharNames[charId] || `角色${charId}`,
+                            draws: drawsSinceLast,
+                            isBad: false
+                        });
+                        pools[poolName].currentDraw = 0;
+                    }
+                });
+            });
+
+            return { pools, totalDraws, totalSixStars, totalBad };
+        }
+
+        function renderPoolItem(poolName, poolData) {
+            const sixStarHtml = poolData.sixStars.length > 0
+                ? `<div class="six-star-list">${poolData.sixStars.map(s => `
+                    <div class="six-star-item">
+                        <div class="char-icon">${s.name.charAt(0)}</div>
+                        <div class="char-info">
+                            <div class="char-name">${s.name}</div>
+                            <div class="char-id">ID: ${s.id}</div>
+                        </div>
+                        <div class="draw-count">
+                            <div class="draw-badge"><span>${s.draws}</span>抽</div>
+                            ${s.isBad ? '<span class="bad-tag">歪</span>' : ''}
+                        </div>
+                    </div>
+                `).join('')}</div>`
+                : '<div class="no-six-star">该卡池暂无六星</div>';
+
+            return `
+                <div class="pool-item">
+                    <div class="pool-header">
+                        <span class="pool-name">${poolName}</span>
+                        <span class="pool-total"><span>${poolData.total}</span>抽</span>
+                    </div>
+                    ${sixStarHtml}
+                </div>
+            `;
+        }
+
+        function render(stats) {
+            const poolNames = ['湖的涟漪', '第一滴雨', '剥茧为名', '湖的应许', '湖心追述', '故事的新啼'];
+            
+            let poolsHtml = '';
+            poolNames.forEach(name => {
+                if (stats.pools[name]) {
+                    poolsHtml += renderPoolItem(name, stats.pools[name]);
+                }
+            });
+
+            const html = `
+                <div class="pool-list">${poolsHtml}</div>
+                <div class="stats-bar">
+                    <div class="stats-title">统计数据</div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value">${stats.totalSixStars}</div>
+                            <div class="stat-label">六星获取</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${stats.totalBad}</div>
+                            <div class="stat-label">歪卡次数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${stats.totalDraws}</div>
+                            <div class="stat-label">累计抽数</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('content').innerHTML = html;
+        }
+
+        async function loadData() {
+            document.getElementById('content').innerHTML = '<div class="loading">加载中...</div>';
+            try {
+                await loadCharacterData();
+                const pageData = await loadPageData();
+                const stats = analyzeData(pageData);
+                render(stats);
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="loading">加载失败: ${e.message}</div>`;
+                console.error('Load failed:', e);
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
