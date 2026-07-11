@@ -734,8 +734,11 @@
 
             const sortedData = [...pageData].sort((a, b) => new Date(a.createTime) - new Date(b.createTime));
 
+            const type3Pity = { currentDraw: 0 };
+
             sortedData.forEach(record => {
                 const poolName = record.poolName;
+                const poolType = record.poolType;
                 const drawCount = parseInt(record.summonType);
                 totalDraws += drawCount;
 
@@ -746,19 +749,33 @@
                 pools[poolName].total += drawCount;
 
                 record.gainIds.forEach((charId, index) => {
-                    pools[poolName].currentDraw++;
+                    let currentDraw;
+                    let resetCurrentDraw;
+
+                    if (poolType === 3) {
+                        type3Pity.currentDraw++;
+                        currentDraw = type3Pity.currentDraw;
+                        resetCurrentDraw = () => { type3Pity.currentDraw = 0; };
+                    } else if (poolType === 6) {
+                        pools[poolName].currentDraw++;
+                        currentDraw = pools[poolName].currentDraw;
+                        resetCurrentDraw = () => { pools[poolName].currentDraw = 0; };
+                    } else {
+                        pools[poolName].currentDraw++;
+                        currentDraw = pools[poolName].currentDraw;
+                        resetCurrentDraw = () => { pools[poolName].currentDraw = 0; };
+                    }
 
                     if (sixStarIds.includes(charId)) {
                         totalSixStars++;
-                        const drawsSinceLast = pools[poolName].currentDraw;
 
                         pools[poolName].sixStars.push({
                             id: charId,
                             name: allCharNames[charId] || `角色${charId}`,
-                            draws: drawsSinceLast,
+                            draws: currentDraw,
                             isBad: false
                         });
-                        pools[poolName].currentDraw = 0;
+                        resetCurrentDraw();
                     }
                 });
             });
