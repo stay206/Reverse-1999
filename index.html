@@ -506,6 +506,55 @@
         .modal-btn:active {
             opacity: 0.9;
         }
+
+        .settings-item {
+            margin-bottom: 20px;
+        }
+
+        .settings-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .settings-input-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .settings-input {
+            flex: 1;
+            margin-bottom: 0 !important;
+        }
+
+        .settings-toggle-btn {
+            padding: 0 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+            color: #666;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+
+        .settings-toggle-btn:active {
+            background: #e8e8e8;
+        }
+
+        .settings-hint {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .settings-save-btn {
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -557,6 +606,15 @@
             </div>
             <div class="modal-body">
                 <div class="settings-content">
+                    <div class="settings-item">
+                        <div class="settings-label">GitHub Personal Access Token</div>
+                        <div class="settings-input-row">
+                            <input type="password" class="modal-input settings-input" id="githubTokenInput" placeholder="请输入Token">
+                            <button class="settings-toggle-btn" onclick="toggleTokenVisibility()">显示</button>
+                        </div>
+                        <div class="settings-hint">用于推送数据到GitHub仓库，Token将保存在本地localStorage中</div>
+                        <button class="modal-btn settings-save-btn" onclick="saveGitHubToken()">保存</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -771,6 +829,46 @@
         document.getElementById('settingsModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeSettingsModal();
+            }
+        });
+
+        function toggleTokenVisibility() {
+            const input = document.getElementById('githubTokenInput');
+            const btn = event.target;
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '隐藏';
+            } else {
+                input.type = 'password';
+                btn.textContent = '显示';
+            }
+        }
+
+        function saveGitHubToken() {
+            const token = document.getElementById('githubTokenInput').value.trim();
+            if (!token) {
+                alert('请输入Token');
+                return;
+            }
+            localStorage.setItem('github_token', token);
+            alert('Token已保存');
+            closeSettingsModal();
+        }
+
+        function loadGitHubToken() {
+            const token = localStorage.getItem('github_token');
+            if (token) {
+                document.getElementById('githubTokenInput').value = token;
+            }
+        }
+
+        function getGitHubToken() {
+            return localStorage.getItem('github_token') || '';
+        }
+
+        document.getElementById('settingsModal').addEventListener('transitionend', function() {
+            if (this.classList.contains('active')) {
+                loadGitHubToken();
             }
         });
 
