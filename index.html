@@ -1132,6 +1132,16 @@
             return true;
         }
 
+        const POOL_UP_CHARACTERS = {
+            '故事的新啼': '3146:小瑞安侬',
+            '剥茧为名': '3147:无名者'
+        };
+
+        function getPoolUpLine(poolName) {
+            const up = POOL_UP_CHARACTERS[poolName];
+            return `up:${up || '0:无'},\n`;
+        }
+
         async function pushPoolDataToGitHub(allData) {
             const poolMap = {};
             allData.forEach(record => {
@@ -1152,7 +1162,7 @@
                 const dirPath = `poolType/${poolType}`;
                 const filePath = `${dirPath}/${fileName}`;
 
-                const content = records.map(r => JSON.stringify(r) + ',').join('\n');
+                const content = getPoolUpLine(poolName) + records.map(r => JSON.stringify(r) + ',').join('\n');
 
                 const sha = await githubGetFileSha(filePath);
                 if (!sha) {
