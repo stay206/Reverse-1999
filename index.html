@@ -732,21 +732,29 @@
             let totalSixStars = 0;
             let totalBad = 0;
 
-            const sortedData = [...pageData].sort((a, b) => new Date(a.createTime) - new Date(b.createTime));
+            const sortedData = [...pageData].sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
 
             const type3Pity = { currentDraw: 0 };
+            const reverseData = [...pageData].sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
 
-            sortedData.forEach(record => {
+            reverseData.forEach(record => {
                 const poolName = record.poolName;
                 const poolType = record.poolType;
                 const drawCount = parseInt(record.summonType);
                 totalDraws += drawCount;
 
                 if (!pools[poolName]) {
-                    pools[poolName] = { total: 0, currentDraw: 0, sixStars: [] };
+                    pools[poolName] = { total: 0, currentDraw: 0, sixStars: [], lastTime: record.createTime };
                 }
-
+                pools[poolName].lastTime = record.createTime;
                 pools[poolName].total += drawCount;
+            });
+
+            const forwardData = [...pageData].sort((a, b) => new Date(a.createTime) - new Date(b.createTime));
+
+            forwardData.forEach(record => {
+                const poolName = record.poolName;
+                const poolType = record.poolType;
 
                 record.gainIds.forEach((charId, index) => {
                     let currentDraw;
@@ -778,6 +786,10 @@
                         resetCurrentDraw();
                     }
                 });
+            });
+
+            Object.keys(pools).forEach(name => {
+                pools[name].sixStars.reverse();
             });
 
             return { pools, totalDraws, totalSixStars, totalBad };
@@ -822,7 +834,9 @@
         }
 
         function render(stats) {
-            const poolNames = Object.keys(stats.pools).sort();
+            const poolNames = Object.keys(stats.pools).sort((a, b) => {
+                return new Date(stats.pools[b].lastTime) - new Date(stats.pools[a].lastTime);
+            });
             
             let poolsHtml = '';
             poolNames.forEach(name => {
