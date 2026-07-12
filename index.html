@@ -1079,6 +1079,7 @@
         let fourStarIds = [];
         let threeStarIds = [];
         let twoStarIds = [];
+        let isEditMode = false;
 
         async function fetchText(url) {
             const response = await fetch(url);
@@ -1430,7 +1431,6 @@
             document.getElementById('settingsModal').classList.remove('active');
         }
 
-        let isEditMode = false;
         let editingItem = null;
         let originalData = '';
 
