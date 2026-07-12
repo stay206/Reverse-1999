@@ -1761,11 +1761,11 @@
                 document.getElementById('editPoolUpName').value = '';
             }
             
-            document.getElementById('editPoolModal').style.display = 'block';
+            document.getElementById('editPoolModal').classList.add('active');
         }
 
         function closeEditPoolModal() {
-            document.getElementById('editPoolModal').style.display = 'none';
+            document.getElementById('editPoolModal').classList.remove('active');
             editingPoolName = null;
         }
 
