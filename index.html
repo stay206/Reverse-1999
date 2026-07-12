@@ -1245,7 +1245,7 @@
             reverseData.forEach(record => {
                 const poolName = record.poolName;
                 const poolType = record.poolType;
-                const drawCount = parseInt(record.summonType);
+                const drawCount = record.summonType ? parseInt(record.summonType) || 0 : 0;
                 totalDraws += drawCount;
 
                 if (!pools[poolName]) {
@@ -1264,25 +1264,26 @@
                 const poolName = record.poolName;
                 const poolType = record.poolType;
                 const savedDraws = record.draws && parseInt(record.draws) > 0 ? parseInt(record.draws) : null;
+                const hasSummonType = record.summonType && record.summonType !== '';
 
                 record.gainIds.forEach((charId, index) => {
                     let currentDraw;
                     let resetCurrentDraw;
 
                     if (poolType === 3) {
-                        type3Pity.currentDraw++;
+                        if (hasSummonType) type3Pity.currentDraw++;
                         currentDraw = savedDraws || type3Pity.currentDraw;
                         resetCurrentDraw = () => { type3Pity.currentDraw = 0; };
                     } else if (poolType === 12) {
-                        type12Pity.currentDraw++;
+                        if (hasSummonType) type12Pity.currentDraw++;
                         currentDraw = savedDraws || type12Pity.currentDraw;
                         resetCurrentDraw = () => { type12Pity.currentDraw = 0; };
                     } else if (poolType === 7) {
-                        pools[poolName].currentDraw++;
+                        if (hasSummonType) pools[poolName].currentDraw++;
                         currentDraw = savedDraws || pools[poolName].currentDraw;
                         resetCurrentDraw = () => { pools[poolName].currentDraw = 0; };
                     } else {
-                        pools[poolName].currentDraw++;
+                        if (hasSummonType) pools[poolName].currentDraw++;
                         currentDraw = savedDraws || pools[poolName].currentDraw;
                         resetCurrentDraw = () => { pools[poolName].currentDraw = 0; };
                     }
@@ -1921,7 +1922,7 @@
             }
             
             const newItem = {
-                summonType: '10',
+                summonType: '',
                 luckyBagIds: [],
                 createTime: time.replace('T', ' '),
                 poolId: Date.now(),
@@ -1973,9 +1974,9 @@
             let pageData = backup ? parseBackupData(backup) : [];
             
             const existingPool = pageData.find(item => item.poolName === poolName);
-            if (!existingPool) {
+            if (!existingPool && totalDraws === 0) {
                 pageData.push({
-                    summonType: '0',
+                    summonType: '',
                     luckyBagIds: [],
                     createTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
                     poolId: Date.now(),
@@ -2006,16 +2007,17 @@
                     timeOffset += 1000;
                 }
                 
-                if (remaining > 0) {
+                for (let i = 0; i < remaining; i++) {
                     pageData.push({
-                        summonType: remaining.toString(),
+                        summonType: '1',
                         luckyBagIds: [],
                         createTime: new Date(now.getTime() - timeOffset).toISOString().replace('T', ' ').substring(0, 19),
-                        poolId: Date.now() + batches,
+                        poolId: Date.now() + batches + i,
                         gainIds: [],
                         poolType: parseInt(poolType),
                         poolName: poolName
                     });
+                    timeOffset += 1000;
                 }
             }
             
@@ -2316,30 +2318,30 @@
         async function pushPoolDataToGitHub(allData, changedPools = null) {
             const poolMap = {};
             allData.forEach(record => {
-                const pt = record.poolType;
-                if (!poolMap[pt]) {
-                    poolMap[pt] = [];
+                const key = `${record.poolType}|${record.poolName}`;
+                if (!poolMap[key]) {
+                    poolMap[key] = { poolType: record.poolType, poolName: record.poolName, records: [] };
                 }
-                poolMap[pt].push(record);
+                poolMap[key].records.push(record);
             });
 
             let pushedCount = 0;
             let newPools = [];
 
-            for (const poolType of Object.keys(poolMap)) {
-                const records = poolMap[poolType].sort((a, b) => new Date(a.createTime) - new Date(b.createTime));
-                const poolName = records[0].poolName;
-                const poolKey = `${poolType}|${poolName}`;
+            for (const key of Object.keys(poolMap)) {
+                const { poolType, poolName, records } = poolMap[key];
 
-                if (changedPools && !changedPools.includes(poolKey)) {
+                if (changedPools && !changedPools.includes(key)) {
                     continue;
                 }
+
+                const sortedRecords = records.sort((a, b) => new Date(a.createTime) - new Date(b.createTime));
 
                 const fileName = `${poolName}.josn`;
                 const dirPath = `poolType/${poolType}`;
                 const filePath = `${dirPath}/${fileName}`;
 
-                const content = getPoolUpLine(poolName) + records.map(r => JSON.stringify(r) + ',').join('\n');
+                const content = getPoolUpLine(poolName) + sortedRecords.map(r => JSON.stringify(r) + ',').join('\n');
 
                 const sha = await githubGetFileSha(filePath);
                 if (!sha) {
