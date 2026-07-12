@@ -1304,8 +1304,8 @@
                             prob = `${(baseProb + extraProb).toFixed(1)}%`;
                         }
 
-                        const isUp = upInfo && upInfo.upIds && upInfo.upIds.includes(charId);
-                        
+                        const isUp = record.isUp !== undefined ? record.isUp : (upInfo && upInfo.upIds && upInfo.upIds.includes(charId));
+
                         const charName = allCharNames[charId];
                         pools[poolName].sixStars.push({
                             id: charId,
@@ -1642,7 +1642,19 @@
             
             document.getElementById('editItemDraws').value = draws;
             
-            const isUp = poolUpMap[poolName] && poolUpMap[poolName].upIds && poolUpMap[poolName].upIds.includes(charId);
+            const backup = localStorage.getItem('pageData_backup');
+            let isUp = false;
+            if (backup) {
+                const pageData = parseBackupData(backup);
+                const found = pageData.find(item => item.poolName === poolName && item.charId === charId);
+                if (found && found.isUp !== undefined) {
+                    isUp = found.isUp;
+                } else {
+                    isUp = poolUpMap[poolName] && poolUpMap[poolName].upIds && poolUpMap[poolName].upIds.includes(charId);
+                }
+            } else {
+                isUp = poolUpMap[poolName] && poolUpMap[poolName].upIds && poolUpMap[poolName].upIds.includes(charId);
+            }
             updateIsUpToggle(isUp);
             
             document.getElementById('editItemModal').classList.add('active');
@@ -1694,6 +1706,8 @@
                 return;
             }
             
+            const isUp = document.getElementById('isUpToggle').style.transform === 'translateX(20px)';
+            
             await saveCharToFile(editingItemData.charId, name, starLevel);
             
             allCharNames[editingItemData.charId] = name;
@@ -1704,14 +1718,42 @@
                 pageData.forEach(item => {
                     if (item.poolName === editingItemData.poolName && item.charId === editingItemData.charId) {
                         item.draws = draws;
+                        item.isUp = isUp;
                     }
                 });
                 localStorage.setItem('pageData_backup', JSON.stringify(pageData));
             }
             
+            await updatePoolUpMapFromPageData();
+            
             closeEditItemModal();
             await loadCharacterData();
             renderStats();
+        }
+
+        async function updatePoolUpMapFromPageData() {
+            const backup = localStorage.getItem('pageData_backup');
+            if (!backup) return;
+            
+            const pageData = parseBackupData(backup);
+            const poolUpMapTemp = {};
+            
+            pageData.forEach(record => {
+                const poolName = record.poolName;
+                if (!poolUpMapTemp[poolName]) {
+                    poolUpMapTemp[poolName] = { upIds: [], upNames: {} };
+                }
+                
+                if (record.isUp && record.charId) {
+                    const charId = parseInt(record.charId);
+                    if (!poolUpMapTemp[poolName].upIds.includes(charId)) {
+                        poolUpMapTemp[poolName].upIds.push(charId);
+                        poolUpMapTemp[poolName].upNames[charId] = allCharNames[charId] || charId.toString();
+                    }
+                }
+            });
+            
+            poolUpMap = poolUpMapTemp;
         }
 
         async function saveCharToFile(charId, name, starLevel) {
