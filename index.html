@@ -101,6 +101,22 @@
             gap: 10px;
         }
 
+        .edit-pool-btn {
+            padding: 4px 12px;
+            background: rgba(107, 176, 255, 0.2);
+            color: #6bb0ff;
+            border: 1px solid rgba(107, 176, 255, 0.4);
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .edit-pool-btn:hover {
+            background: rgba(107, 176, 255, 0.3);
+            color: #4795ff;
+        }
+
         .delete-pool-btn {
             padding: 4px 12px;
             background: rgba(255, 107, 107, 0.2);
@@ -1106,6 +1122,40 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="editPoolModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeEditPoolModal()">×</button>
+            <div class="modal-header">
+                <div class="modal-title">编辑池子</div>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">池子类型</label>
+                    <select id="editPoolType" class="modal-input" style="appearance:none;">
+                        <option value="1">新人 & 常驻征集</option>
+                        <option value="3">UP池（活动池）</option>
+                        <option value="6">限定征集</option>
+                        <option value="7">限时活动征集</option>
+                        <option value="12">湖的涟漪征集</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">池子名称</label>
+                    <input type="text" id="editPoolName" class="modal-input" placeholder="请输入池子名称">
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">UP角色ID</label>
+                    <input type="text" id="editPoolUpId" class="modal-input" placeholder="如: 3146，多个用逗号分隔">
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">UP角色名称</label>
+                    <input type="text" id="editPoolUpName" class="modal-input" placeholder="如: 小瑞安侬，多个用逗号分隔">
+                </div>
+                <button class="modal-btn" style="width:100%;background:#6bb0ff;color:#fff;" onclick="saveEditPool()">确认修改</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let allCharNames = {};
         let sixStarIds = [];
@@ -1397,6 +1447,7 @@
                         <span class="pool-name">${poolName}</span>
                         <div class="pool-header-right">
                             <span class="pool-total"><span>${poolData.total}</span>抽</span>
+                            ${isEditMode ? `<button class="edit-pool-btn" onclick="editPool('${poolName}')">编辑</button>` : ''}
                             ${isEditMode ? `<button class="delete-pool-btn" onclick="deletePool('${poolName}')">删除</button>` : ''}
                         </div>
                     </div>
@@ -1681,6 +1732,82 @@
             pageData = otherPools;
             localStorage.setItem('pageData_backup', JSON.stringify(pageData));
             
+            renderStats();
+        }
+
+        let editingPoolName = null;
+
+        function editPool(poolName) {
+            if (!isEditMode) return;
+            
+            editingPoolName = poolName;
+            
+            const backup = localStorage.getItem('pageData_backup');
+            if (!backup) return;
+            
+            const pageData = parseBackupData(backup);
+            const record = pageData.find(item => item.poolName === poolName);
+            if (!record) return;
+            
+            document.getElementById('editPoolType').value = record.poolType;
+            document.getElementById('editPoolName').value = poolName;
+            
+            const upInfo = poolUpMap[poolName];
+            if (upInfo && upInfo.upIds && upInfo.upIds.length > 0) {
+                document.getElementById('editPoolUpId').value = upInfo.upIds.join(',');
+                document.getElementById('editPoolUpName').value = upInfo.upIds.map(id => upInfo.upNames[id] || '').join(',');
+            } else {
+                document.getElementById('editPoolUpId').value = '';
+                document.getElementById('editPoolUpName').value = '';
+            }
+            
+            document.getElementById('editPoolModal').style.display = 'block';
+        }
+
+        function closeEditPoolModal() {
+            document.getElementById('editPoolModal').style.display = 'none';
+            editingPoolName = null;
+        }
+
+        function saveEditPool() {
+            if (!editingPoolName) return;
+            
+            const newPoolType = parseInt(document.getElementById('editPoolType').value);
+            const newPoolName = document.getElementById('editPoolName').value.trim();
+            const upIds = document.getElementById('editPoolUpId').value.split(',').map(id => id.trim()).filter(id => id);
+            const upNames = document.getElementById('editPoolUpName').value.split(',').map(name => name.trim()).filter(name => name);
+            
+            if (!newPoolName) {
+                alert('请输入池子名称');
+                return;
+            }
+            
+            const backup = localStorage.getItem('pageData_backup');
+            if (!backup) return;
+            
+            let pageData = parseBackupData(backup);
+            
+            pageData.forEach(item => {
+                if (item.poolName === editingPoolName) {
+                    item.poolType = newPoolType;
+                    item.poolName = newPoolName;
+                }
+            });
+            
+            if (upIds.length > 0) {
+                const upMap = {};
+                upIds.forEach((id, index) => {
+                    upMap[id] = upNames[index] || '';
+                });
+                poolUpMap[newPoolName] = { upIds: upIds, upNames: upMap };
+                if (editingPoolName !== newPoolName) {
+                    delete poolUpMap[editingPoolName];
+                }
+            }
+            
+            localStorage.setItem('pageData_backup', JSON.stringify(pageData));
+            
+            closeEditPoolModal();
             renderStats();
         }
 
