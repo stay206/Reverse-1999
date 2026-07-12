@@ -95,6 +95,28 @@
             margin-bottom: 15px;
         }
 
+        .pool-header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .delete-pool-btn {
+            padding: 4px 12px;
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(255, 107, 107, 0.4);
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .delete-pool-btn:hover {
+            background: rgba(255, 107, 107, 0.3);
+            color: #ff4757;
+        }
+
         .pool-name {
             font-size: 15px;
             color: #e8dcc8;
@@ -1373,7 +1395,10 @@
                 <div class="pool-item ${hasSixStar ? '' : 'no-six-star-pool'}">
                     <div class="pool-header">
                         <span class="pool-name">${poolName}</span>
-                        <span class="pool-total"><span>${poolData.total}</span>抽</span>
+                        <div class="pool-header-right">
+                            <span class="pool-total"><span>${poolData.total}</span>抽</span>
+                            ${isEditMode ? `<button class="delete-pool-btn" onclick="deletePool('${poolName}')">删除</button>` : ''}
+                        </div>
                     </div>
                     ${sixStarHtml}
                 </div>
@@ -1545,9 +1570,23 @@
                     try {
                         const pageData = parseBackupData(currentData);
                         const changedPools = getChangedPools(pageData);
-                        if (changedPools.length > 0) {
-                            const result = await pushPoolDataToGitHub(pageData, changedPools);
-                            alert(`修改已保存\n已推送 ${result.pushedCount} 个文件到 GitHub`);
+                        
+                        const deletedPools = [];
+                        for (const key of Object.keys(originalPoolData)) {
+                            if (!changedPools.includes(key)) {
+                                const sepIdx = key.indexOf('|');
+                                const poolType = key.substring(0, sepIdx);
+                                const poolName = key.substring(sepIdx + 1);
+                                deletedPools.push({ poolType, poolName });
+                            }
+                        }
+                        
+                        if (changedPools.length > 0 || deletedPools.length > 0) {
+                            const result = await pushPoolDataToGitHub(pageData, changedPools, deletedPools);
+                            const msg = [];
+                            if (result.pushedCount > 0) msg.push(`已推送 ${result.pushedCount} 个文件`);
+                            if (result.deletedCount > 0) msg.push(`已删除 ${result.deletedCount} 个文件`);
+                            alert(`修改已保存\n${msg.join('，')} 到 GitHub`);
                         } else {
                             alert('数据未发生变化，无需推送');
                         }
@@ -1611,6 +1650,35 @@
             
             let pageData = parseBackupData(backup);
             pageData = pageData.filter(item => !(item.poolName === poolName && item.charId === charId));
+            localStorage.setItem('pageData_backup', JSON.stringify(pageData));
+            
+            renderStats();
+        }
+
+        function deletePool(poolName) {
+            if (!isEditMode) return;
+            
+            const backup = localStorage.getItem('pageData_backup');
+            if (!backup) return;
+            
+            let pageData = parseBackupData(backup);
+            const poolCount = pageData.filter(item => item.poolName === poolName).length;
+            if (poolCount === 0) {
+                alert('该池子不存在');
+                return;
+            }
+            
+            const otherPools = pageData.filter(item => item.poolName !== poolName);
+            if (otherPools.length === 0) {
+                alert('至少保留一个池子');
+                return;
+            }
+            
+            if (!confirm(`确定删除池子「${poolName}」？此操作将删除该池子的所有抽卡记录。`)) {
+                return;
+            }
+            
+            pageData = otherPools;
             localStorage.setItem('pageData_backup', JSON.stringify(pageData));
             
             renderStats();
@@ -2315,7 +2383,39 @@
             return `up:${up || '0:无'},\n`;
         }
 
-        async function pushPoolDataToGitHub(allData, changedPools = null) {
+        async function githubDeleteFile(path, message) {
+            const token = getGitHubToken();
+            if (!token) {
+                console.warn('未设置GitHub Token，跳过删除');
+                return false;
+            }
+
+            const sha = await githubGetFileSha(path);
+            if (!sha) {
+                return false;
+            }
+
+            const body = {
+                message: message,
+                sha: sha,
+                branch: GITHUB_BRANCH
+            };
+
+            const response = await fetch(`${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`, {
+                method: 'DELETE',
+                headers: githubHeaders(),
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(`GitHub API错误: ${errData.message || response.statusText}`);
+            }
+
+            return true;
+        }
+
+        async function pushPoolDataToGitHub(allData, changedPools = null, deletedPools = null) {
             const poolMap = {};
             allData.forEach(record => {
                 const key = `${record.poolType}|${record.poolName}`;
@@ -2326,7 +2426,23 @@
             });
 
             let pushedCount = 0;
+            let deletedCount = 0;
             let newPools = [];
+
+            if (deletedPools) {
+                for (const { poolType, poolName } of deletedPools) {
+                    const fileName = `${poolName}.josn`;
+                    const filePath = `poolType/${poolType}/${fileName}`;
+                    try {
+                        const result = await githubDeleteFile(filePath, `删除池子: ${poolName}`);
+                        if (result) {
+                            deletedCount++;
+                        }
+                    } catch (e) {
+                        console.error(`删除失败: ${filePath}`, e);
+                    }
+                }
+            }
 
             for (const key of Object.keys(poolMap)) {
                 const { poolType, poolName, records } = poolMap[key];
@@ -2359,7 +2475,7 @@
                 }
             }
 
-            if (!changedPools || changedPools.length > 0) {
+            if (!changedPools || changedPools.length > 0 || deletedPools && deletedPools.length > 0) {
                 const pageDataContent = allData
                     .sort((a, b) => new Date(a.createTime) - new Date(b.createTime))
                     .map(r => JSON.stringify(r) + ',')
@@ -2367,7 +2483,7 @@
                 await githubCreateOrUpdateFile('pageData.josn', pageDataContent, '更新总抽卡数据');
             }
 
-            return { pushedCount, newPools };
+            return { pushedCount, deletedCount, newPools };
         }
 
         let hideNoSixStar = false;
