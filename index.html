@@ -1149,6 +1149,7 @@
                 </div>
                 <div style="margin-bottom:15px;">
                     <label style="display:block;margin-bottom:5px;font-size:13px;">UP角色</label>
+                    <input type="text" id="editPoolUpSearch" class="modal-input" placeholder="搜索角色ID或名称" style="margin-bottom:5px;">
                     <select id="editPoolUpChar" class="modal-input" style="appearance:none;">
                         <option value="">请选择UP角色</option>
                     </select>
@@ -1334,6 +1335,10 @@
                 pools[poolName].total += drawCount;
             });
 
+            pageData.forEach((record, idx) => {
+                record._originalIndex = idx;
+            });
+            
             const forwardData = [...pageData].sort((a, b) => new Date(a.createTime) - new Date(b.createTime));
             const type3Pity = { currentDraw: 0 };
             const type12Pity = { currentDraw: 0 };
@@ -1382,11 +1387,15 @@
                             prob = `${(baseProb + extraProb).toFixed(1)}%`;
                         }
 
-                        const isUp = record.isUp !== undefined ? record.isUp : (upInfo && upInfo.upIds && upInfo.upIds.includes(charId));
+                        const isUp = upInfo && upInfo.upIds && upInfo.upIds.includes(charId);
 
                         const charName = allCharNames[charId];
                         pools[poolName].sixStars.push({
                             id: charId,
+                            originalIndex: record._originalIndex,
+                            gainIndex: index,
+                            poolId: record.poolId,
+                            createTime: record.createTime,
                             name: charName || charId.toString(),
                             isUnknown: !charName,
                             draws: currentDraw,
@@ -1429,8 +1438,8 @@
                 }
                 const probHtml = s.prob && !s.isAbnormal ? `<span class="prob-tag">${s.prob}</span>` : '';
                 return `
-                <div class="six-star-item" data-id="${s.id}" data-pool="${poolName}" onclick="handleSixStarClick('${poolName}', ${s.id}, ${s.draws})" data-is-up="${s.isUp}">
-                    ${isEditMode ? `<div class="delete-btn" onclick="event.stopPropagation(); deleteSixStar('${poolName}', ${s.id})">×</div>` : ''}
+                <div class="six-star-item" data-id="${s.id}" data-pool="${poolName}" data-original-index="${s.originalIndex}" data-gain-index="${s.gainIndex}" data-pool-id="${s.poolId}" data-create-time="${s.createTime}" onclick="handleSixStarClick('${poolName}', ${s.id}, ${s.draws}, ${s.originalIndex}, ${s.gainIndex}, '${s.poolId}', '${s.createTime}')" data-is-up="${s.isUp}">
+                    ${isEditMode ? `<div class="delete-btn" onclick="event.stopPropagation(); deleteSixStar('${poolName}', ${s.id}, ${s.originalIndex}, ${s.gainIndex}, '${s.poolId}', '${s.createTime}')">×</div>` : ''}
                     ${s.isUp ? '<div class="up-badge">UP</div>' : ''}
                     <div class="char-icon" data-name="${s.name}">
                         <img src="${getCharImageUrl(s.id)}" alt="${s.name}" onerror="this.style.display='none';this.parentElement.innerHTML='${s.name.charAt(0)}'">
@@ -1567,6 +1576,7 @@
         let editingItem = null;
         let originalData = '';
         let originalPoolData = {};
+        let originalPoolUpMap = {};
 
         async function openEditModal() {
             if (isEditMode) {
@@ -1596,6 +1606,9 @@
                 }
                 originalPoolData[key].push(record);
             });
+            
+            originalPoolUpMap = JSON.parse(JSON.stringify(poolUpMap));
+            
             isEditMode = true;
             document.getElementById('addPoolBtnContainer').style.display = 'block';
             document.body.classList.add('edit-mode');
@@ -1614,7 +1627,13 @@
 
         function hasDataChanged() {
             const currentData = localStorage.getItem('pageData_backup') || '';
-            return currentData !== originalData;
+            if (currentData !== originalData) {
+                return true;
+            }
+            
+            const currentPoolUpStr = JSON.stringify(poolUpMap);
+            const originalPoolUpStr = JSON.stringify(originalPoolUpMap);
+            return currentPoolUpStr !== originalPoolUpStr;
         }
 
         async function saveChanges() {
@@ -1699,15 +1718,32 @@
                 }
             }
             
+            for (const poolName of Object.keys(poolUpMap)) {
+                const currentUp = poolUpMap[poolName];
+                const originalUp = originalPoolUpMap[poolName];
+                
+                const currentUpStr = JSON.stringify(currentUp);
+                const originalUpStr = JSON.stringify(originalUp);
+                
+                if (currentUpStr !== originalUpStr) {
+                    const matchingKey = Object.keys(currentPoolData).find(k => k.endsWith(`|${poolName}`));
+                    if (matchingKey) {
+                        if (!changedPools.includes(matchingKey)) {
+                            changedPools.push(matchingKey);
+                        }
+                    }
+                }
+            }
+            
             return changedPools;
         }
 
-        function handleSixStarClick(poolName, charId, draws) {
+        function handleSixStarClick(poolName, charId, draws, originalIndex, gainIndex, poolId, createTime) {
             if (!isEditMode) return;
-            openEditItemModal(poolName, charId, draws);
+            openEditItemModal(poolName, charId, draws, originalIndex, gainIndex, poolId, createTime);
         }
 
-        function deleteSixStar(poolName, charId) {
+        function deleteSixStar(poolName, charId, originalIndex, gainIndex, poolId, createTime) {
             if (!isEditMode) return;
             if (!confirm('确定删除该出货记录？')) return;
             
@@ -1715,7 +1751,20 @@
             if (!backup) return;
             
             let pageData = parseBackupData(backup);
-            pageData = pageData.filter(item => !(item.poolName === poolName && item.charId === charId));
+            
+            for (let i = 0; i < pageData.length; i++) {
+                const item = pageData[i];
+                if (item.poolId == poolId && 
+                    item.createTime === createTime &&
+                    item.gainIds && item.gainIds[gainIndex] == charId) {
+                    item.gainIds.splice(gainIndex, 1);
+                    if (item.gainIds.length === 0) {
+                        pageData.splice(i, 1);
+                    }
+                    break;
+                }
+            }
+            
             localStorage.setItem('pageData_backup', JSON.stringify(pageData));
             
             renderStats();
@@ -1766,19 +1815,48 @@
             
             document.getElementById('editPoolType').value = record.poolType;
             document.getElementById('editPoolName').value = poolName;
+            document.getElementById('editPoolUpSearch').value = '';
             
+            populateEditPoolUpSelect();
+            
+            const searchInput = document.getElementById('editPoolUpSearch');
+            searchInput.oninput = function() {
+                filterEditPoolUpSelect(this.value);
+            };
+            
+            renderEditPoolUpList(poolName);
+            
+            document.getElementById('editPoolModal').classList.add('active');
+        }
+        
+        function populateEditPoolUpSelect() {
             const upSelect = document.getElementById('editPoolUpChar');
             upSelect.innerHTML = '<option value="">请选择UP角色</option>';
             Object.entries(allCharNames).forEach(([id, name]) => {
                 const option = document.createElement('option');
                 option.value = id;
                 option.textContent = `${id}: ${name}`;
+                option.dataset.charName = name;
                 upSelect.appendChild(option);
             });
+        }
+        
+        function filterEditPoolUpSelect(searchTerm) {
+            const upSelect = document.getElementById('editPoolUpChar');
+            const options = upSelect.querySelectorAll('option');
             
-            renderEditPoolUpList(poolName);
-            
-            document.getElementById('editPoolModal').classList.add('active');
+            options.forEach(option => {
+                if (option.value === '') {
+                    option.style.display = searchTerm ? 'none' : 'block';
+                    return;
+                }
+                
+                const id = option.value;
+                const name = option.dataset.charName || '';
+                
+                const match = id.includes(searchTerm) || name.toLowerCase().includes(searchTerm.toLowerCase());
+                option.style.display = match ? 'block' : 'none';
+            });
         }
         
         function renderEditPoolUpList(poolName) {
@@ -1836,7 +1914,7 @@
             editingPoolName = null;
         }
 
-        function saveEditPool() {
+        async function saveEditPool() {
             if (!editingPoolName) return;
             
             const newPoolType = parseInt(document.getElementById('editPoolType').value);
@@ -1868,12 +1946,53 @@
             
             closeEditPoolModal();
             renderStats();
+            
+            const token = getGitHubToken();
+            if (token) {
+                try {
+                    const changedPools = getChangedPools(pageData);
+                    
+                    const currentPoolData = {};
+                    pageData.forEach(record => {
+                        const key = `${record.poolType}|${record.poolName}`;
+                        if (!currentPoolData[key]) {
+                            currentPoolData[key] = [];
+                        }
+                        currentPoolData[key].push(record);
+                    });
+                    
+                    const deletedPools = [];
+                    for (const key of Object.keys(originalPoolData)) {
+                        if (!currentPoolData[key]) {
+                            const sepIdx = key.indexOf('|');
+                            const poolType = key.substring(0, sepIdx);
+                            const poolName = key.substring(sepIdx + 1);
+                            deletedPools.push({ poolType, poolName });
+                        }
+                    }
+                    
+                    if (changedPools.length > 0 || deletedPools.length > 0) {
+                        const result = await pushPoolDataToGitHub(pageData, changedPools, deletedPools);
+                        const msg = [];
+                        if (result.pushedCount > 0) msg.push(`已推送 ${result.pushedCount} 个文件`);
+                        if (result.deletedCount > 0) msg.push(`已删除 ${result.deletedCount} 个文件`);
+                        alert(`修改已保存\n${msg.join('，')} 到 GitHub`);
+                    } else {
+                        alert('数据未发生变化，无需推送');
+                    }
+                } catch (e) {
+                    console.error('推送失败:', e);
+                    alert('修改已保存到本地，但推送 GitHub 失败，请检查网络或 Token 设置');
+                }
+            } else {
+                alert('修改已保存到本地\n请在设置中配置 GitHub Token 以同步到仓库');
+            }
         }
 
         let editingItemData = null;
 
-        function openEditItemModal(poolName, charId, draws) {
-            editingItemData = { poolName, charId, draws };
+        function openEditItemModal(poolName, charId, draws, originalIndex, gainIndex, poolId, createTime) {
+            editingItemData = { poolName, charId, draws, originalIndex, gainIndex, poolId, createTime };
             const charName = allCharNames[charId] || charId.toString();
             
             document.getElementById('editItemCharImg').src = getCharImageUrl(charId);
@@ -1896,19 +2015,7 @@
             
             document.getElementById('editItemDraws').value = draws;
             
-            const backup = localStorage.getItem('pageData_backup');
-            let isUp = false;
-            if (backup) {
-                const pageData = parseBackupData(backup);
-                const found = pageData.find(item => item.poolName === poolName && item.charId === charId);
-                if (found && found.isUp !== undefined) {
-                    isUp = found.isUp;
-                } else {
-                    isUp = poolUpMap[poolName] && poolUpMap[poolName].upIds && poolUpMap[poolName].upIds.includes(charId);
-                }
-            } else {
-                isUp = poolUpMap[poolName] && poolUpMap[poolName].upIds && poolUpMap[poolName].upIds.includes(charId);
-            }
+            const isUp = poolUpMap[poolName] && poolUpMap[poolName].upIds && poolUpMap[poolName].upIds.includes(charId);
             updateIsUpToggle(isUp);
             
             document.getElementById('editItemModal').classList.add('active');
@@ -1923,19 +2030,17 @@
             const toggle = document.getElementById('isUpToggle');
             const label = document.getElementById('isUpLabel');
             if (isUp) {
-                toggle.style.transform = 'translateX(20px)';
-                toggle.style.backgroundColor = '#ff9a9e';
+                toggle.classList.add('active');
                 label.textContent = '是';
             } else {
-                toggle.style.transform = 'translateX(0)';
-                toggle.style.backgroundColor = '#ccc';
+                toggle.classList.remove('active');
                 label.textContent = '否';
             }
         }
 
         function toggleIsUp() {
             const toggle = document.getElementById('isUpToggle');
-            const isUp = toggle.style.transform === 'translateX(20px)';
+            const isUp = toggle.classList.contains('active');
             updateIsUpToggle(!isUp);
         }
 
@@ -1960,7 +2065,7 @@
                 return;
             }
             
-            const isUp = document.getElementById('isUpToggle').style.transform === 'translateX(20px)';
+            const isUp = document.getElementById('isUpToggle').classList.contains('active');
             
             await saveCharToFile(editingItemData.charId, name, starLevel);
             
@@ -1969,12 +2074,18 @@
             const backup = localStorage.getItem('pageData_backup');
             if (backup) {
                 let pageData = parseBackupData(backup);
-                pageData.forEach(item => {
-                    if (item.poolName === editingItemData.poolName && item.charId === editingItemData.charId) {
+                
+                for (let i = 0; i < pageData.length; i++) {
+                    const item = pageData[i];
+                    if (item.poolId == editingItemData.poolId && 
+                        item.createTime === editingItemData.createTime &&
+                        item.gainIds && item.gainIds[editingItemData.gainIndex] == editingItemData.charId) {
                         item.draws = draws;
                         delete item.isUp;
+                        break;
                     }
-                });
+                }
+                
                 localStorage.setItem('pageData_backup', JSON.stringify(pageData));
             }
             
@@ -2257,7 +2368,7 @@
                     pageData.push({
                         summonType: '1',
                         luckyBagIds: [],
-                        createTime: new Date(now.getTime() - timeOffset).toISOString().replace('T', ' ').substring(0, 19),
+                        createTime: new Date(baseTime.getTime() - timeOffset).toISOString().replace('T', ' ').substring(0, 19),
                         poolId: Date.now() + batches + i,
                         gainIds: [],
                         poolType: parseInt(poolType),
