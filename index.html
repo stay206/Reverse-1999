@@ -332,7 +332,9 @@
             background: transparent !important;
             color: #333 !important;
             height: auto;
-            display: block;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .card-mode .draw-badge::before {
@@ -353,6 +355,10 @@
 
         .card-mode .draw-unit {
             display: none;
+        }
+
+        .edit-mode .draw-badge {
+            display: flex !important;
         }
 
         .edit-mode .six-star-item {
@@ -940,6 +946,20 @@
                     <span id="editItemCharName" style="font-size:16px;font-weight:bold;"></span>
                 </div>
                 <div style="margin:15px 0;">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">角色名称</label>
+                    <input type="text" id="editItemName" class="modal-input" placeholder="输入角色名称">
+                </div>
+                <div style="margin:15px 0;">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">星级</label>
+                    <select id="editItemStar" class="modal-input" style="appearance:none;">
+                        <option value="6">6星</option>
+                        <option value="5">5星</option>
+                        <option value="4">4星</option>
+                        <option value="3">3星</option>
+                        <option value="2">2星</option>
+                    </select>
+                </div>
+                <div style="margin:15px 0;">
                     <label style="display:block;margin-bottom:5px;font-size:13px;">出货抽数</label>
                     <input type="number" id="editItemDraws" class="modal-input" min="1" max="70" style="width:100px;">
                 </div>
@@ -1021,6 +1041,10 @@
     <script>
         let allCharNames = {};
         let sixStarIds = [];
+        let fiveStarIds = [];
+        let fourStarIds = [];
+        let threeStarIds = [];
+        let twoStarIds = [];
 
         async function fetchText(url) {
             const response = await fetch(url);
@@ -1030,6 +1054,10 @@
         async function loadCharacterData() {
             allCharNames = {};
             sixStarIds = [];
+            fiveStarIds = [];
+            fourStarIds = [];
+            threeStarIds = [];
+            twoStarIds = [];
 
             const starLevels = [2, 3, 4, 5, 6];
             for (const level of starLevels) {
@@ -1044,6 +1072,14 @@
                             allCharNames[id] = name;
                             if (level === 6) {
                                 sixStarIds.push(id);
+                            } else if (level === 5) {
+                                fiveStarIds.push(id);
+                            } else if (level === 4) {
+                                fourStarIds.push(id);
+                            } else if (level === 3) {
+                                threeStarIds.push(id);
+                            } else if (level === 2) {
+                                twoStarIds.push(id);
                             }
                         }
                     });
@@ -1189,9 +1225,11 @@
                         const upInfo = poolUpMap[poolName];
                         const isUp = upInfo && upInfo.upIds && upInfo.upIds.includes(charId);
                         
+                        const charName = allCharNames[charId];
                         pools[poolName].sixStars.push({
                             id: charId,
-                            name: allCharNames[charId] || `角色${charId}`,
+                            name: charName || charId.toString(),
+                            isUnknown: !charName,
                             draws: currentDraw,
                             isBad: isBad,
                             isUp: isUp,
@@ -1222,39 +1260,37 @@
 
         function renderPoolItem(poolName, poolData) {
             const hasSixStar = poolData.sixStars.length > 0;
-            const sixStarHtml = hasSixStar
-                ? `<div class="six-star-list">${poolData.sixStars.map(s => {
-                    const widthPercent = Math.min((s.draws / 70) * 100, 100);
-                    const badgeClass = s.isAbnormal ? 'abnormal' : (s.isSuperBad ? 'super-bad' : '');
-                    let tagHtml = '';
-                    if (s.isAbnormal) {
-                        tagHtml = '<span class="bad-tag">数据异常</span>';
-                    } else if (s.isBad) {
-                        tagHtml = '<span class="bad-tag">歪</span>';
-                    } else if (s.isSuperBad) {
-                        tagHtml = '<span class="bad-tag">超非</span>';
-                    }
-                    const probHtml = s.prob && !s.isAbnormal ? `<span class="prob-tag">${s.prob}</span>` : '';
-                    return `
-                    <div class="six-star-item" data-id="${s.id}" data-pool="${poolName}" onclick="handleSixStarClick('${poolName}', ${s.id}, ${s.draws})" data-is-up="${s.isUp}">
-                        ${isEditMode ? `<div class="delete-btn" onclick="event.stopPropagation(); deleteSixStar('${poolName}', ${s.id})">×</div>` : ''}
-                        ${s.isUp ? '<div class="up-badge">UP</div>' : ''}
-                        <div class="char-icon" data-name="${s.name}">
-                            <img src="${getCharImageUrl(s.id)}" alt="${s.name}" onerror="this.style.display='none';this.parentElement.innerHTML='${s.name.charAt(0)}'">
-                        </div>
-                        <div class="draw-count">
-                            <div class="draw-badge-container">
-                                <div class="draw-badge ${badgeClass}" style="width: ${widthPercent}%;"><span>${s.draws}</span><span class="draw-unit">抽</span></div>
-                            </div>
-                            ${tagHtml}
-                            ${probHtml}
-                        </div>
+            const sixStarHtml = `<div class="six-star-list">${poolData.sixStars.map(s => {
+                const widthPercent = Math.min((s.draws / 70) * 100, 100);
+                const badgeClass = s.isAbnormal ? 'abnormal' : (s.isSuperBad ? 'super-bad' : '');
+                let tagHtml = '';
+                if (s.isAbnormal) {
+                    tagHtml = '<span class="bad-tag">数据异常</span>';
+                } else if (s.isBad) {
+                    tagHtml = '<span class="bad-tag">歪</span>';
+                } else if (s.isSuperBad) {
+                    tagHtml = '<span class="bad-tag">超非</span>';
+                }
+                const probHtml = s.prob && !s.isAbnormal ? `<span class="prob-tag">${s.prob}</span>` : '';
+                return `
+                <div class="six-star-item" data-id="${s.id}" data-pool="${poolName}" onclick="handleSixStarClick('${poolName}', ${s.id}, ${s.draws})" data-is-up="${s.isUp}">
+                    ${isEditMode ? `<div class="delete-btn" onclick="event.stopPropagation(); deleteSixStar('${poolName}', ${s.id})">×</div>` : ''}
+                    ${s.isUp ? '<div class="up-badge">UP</div>' : ''}
+                    <div class="char-icon" data-name="${s.name}">
+                        <img src="${getCharImageUrl(s.id)}" alt="${s.name}" onerror="this.style.display='none';this.parentElement.innerHTML='${s.name.charAt(0)}'">
                     </div>
-                    `;
-                }).join('')}
-                ${isEditMode ? `<div class="six-star-item add-btn" onclick="openAddItemModal()"><span>+</span><span style="font-size:12px;">新增</span></div>` : ''}
-                </div>`
-                : '<div class="no-six-star">该卡池暂无六星</div>';
+                    <div class="draw-count">
+                        <div class="draw-badge-container">
+                            <div class="draw-badge ${badgeClass}" style="width: ${widthPercent}%;"><span>${s.draws}</span><span class="draw-unit">抽</span></div>
+                        </div>
+                        ${tagHtml}
+                        ${probHtml}
+                    </div>
+                </div>
+                `;
+            }).join('')}
+            ${isEditMode ? `<div class="six-star-item add-btn" onclick="openAddItemModal()"><span>+</span><span style="font-size:12px;">新增</span></div>` : ''}
+            </div>`;
 
             return `
                 <div class="pool-item ${hasSixStar ? '' : 'no-six-star-pool'}">
@@ -1426,10 +1462,26 @@
 
         function openEditItemModal(poolName, charId, draws) {
             editingItemData = { poolName, charId, draws };
-            const charName = allCharNames[charId] || '未知';
+            const charName = allCharNames[charId] || charId.toString();
             
             document.getElementById('editItemCharImg').src = getCharImageUrl(charId);
             document.getElementById('editItemCharName').textContent = charName;
+            document.getElementById('editItemName').value = charName;
+            
+            let starLevel = 6;
+            if (sixStarIds.includes(charId)) {
+                starLevel = 6;
+            } else if (fiveStarIds && fiveStarIds.includes(charId)) {
+                starLevel = 5;
+            } else if (fourStarIds && fourStarIds.includes(charId)) {
+                starLevel = 4;
+            } else if (threeStarIds && threeStarIds.includes(charId)) {
+                starLevel = 3;
+            } else if (twoStarIds && twoStarIds.includes(charId)) {
+                starLevel = 2;
+            }
+            document.getElementById('editItemStar').value = starLevel;
+            
             document.getElementById('editItemDraws').value = draws;
             
             const isUp = poolUpMap[poolName] && poolUpMap[poolName].upIds && poolUpMap[poolName].upIds.includes(charId);
@@ -1463,8 +1515,20 @@
             updateIsUpToggle(!isUp);
         }
 
-        function saveEditItem() {
+        async function saveEditItem() {
             if (!editingItemData) return;
+            
+            const name = document.getElementById('editItemName').value.trim();
+            if (!name) {
+                alert('请输入角色名称');
+                return;
+            }
+            
+            const starLevel = parseInt(document.getElementById('editItemStar').value);
+            if (!starLevel || starLevel < 2 || starLevel > 6) {
+                alert('请选择正确的星级');
+                return;
+            }
             
             const draws = parseInt(document.getElementById('editItemDraws').value);
             if (!draws || draws < 1 || draws > 70) {
@@ -1472,19 +1536,54 @@
                 return;
             }
             
-            const backup = localStorage.getItem('pageData_backup');
-            if (!backup) return;
+            await saveCharToFile(editingItemData.charId, name, starLevel);
             
-            let pageData = JSON.parse(backup);
-            pageData.forEach(item => {
-                if (item.poolName === editingItemData.poolName && item.charId === editingItemData.charId) {
-                    item.draws = draws;
-                }
-            });
-            localStorage.setItem('pageData_backup', JSON.stringify(pageData));
+            allCharNames[editingItemData.charId] = name;
+            
+            const backup = localStorage.getItem('pageData_backup');
+            if (backup) {
+                let pageData = JSON.parse(backup);
+                pageData.forEach(item => {
+                    if (item.poolName === editingItemData.poolName && item.charId === editingItemData.charId) {
+                        item.draws = draws;
+                    }
+                });
+                localStorage.setItem('pageData_backup', JSON.stringify(pageData));
+            }
             
             closeEditItemModal();
+            await loadCharacterData();
             renderStats();
+        }
+
+        async function saveCharToFile(charId, name, starLevel) {
+            try {
+                const url = `characters/${starLevel}/gainIds.json`;
+                const response = await fetch(url);
+                let content = await response.text();
+                
+                const oldName = allCharNames[charId];
+                if (oldName) {
+                    const oldPattern = new RegExp(`^${charId}:${oldName},?\\s*$`, 'm');
+                    content = content.replace(oldPattern, '');
+                }
+                
+                content = content.trim();
+                if (content && !content.endsWith('\n')) {
+                    content += '\n';
+                }
+                content += `${charId}:${name},\n`;
+                
+                await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                    body: content
+                });
+            } catch (e) {
+                console.error('保存角色数据失败:', e);
+            }
         }
 
         function deleteCurrentItem() {
