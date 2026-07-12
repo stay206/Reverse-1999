@@ -260,17 +260,23 @@
 
         .card-mode .pool-item {
             padding: 10px;
+            overflow: visible;
+        }
+
+        .card-mode .pool-item .pool-header {
+            margin-bottom: 10px;
         }
 
         .card-mode .six-star-list {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
             gap: 6px;
             padding: 0;
+            width: 100%;
         }
 
         .card-mode .six-star-item {
-            width: 70px;
+            width: auto;
             flex-direction: column;
             align-items: center;
             text-align: center;
@@ -281,8 +287,8 @@
         }
 
         .card-mode .char-icon {
-            width: 48px;
-            height: 48px;
+            width: 50px;
+            height: 50px;
         }
 
         .card-mode .char-icon::after {
@@ -300,8 +306,8 @@
             min-width: auto;
             max-width: none;
             padding: 0;
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 20px;
+            font-weight: 700;
             text-align: center;
             border-radius: 0;
             background: transparent !important;
