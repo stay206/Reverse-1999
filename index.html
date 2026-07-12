@@ -1622,9 +1622,18 @@
                         const pageData = parseBackupData(currentData);
                         const changedPools = getChangedPools(pageData);
                         
+                        const currentPoolData = {};
+                        pageData.forEach(record => {
+                            const key = `${record.poolType}|${record.poolName}`;
+                            if (!currentPoolData[key]) {
+                                currentPoolData[key] = [];
+                            }
+                            currentPoolData[key].push(record);
+                        });
+                        
                         const deletedPools = [];
                         for (const key of Object.keys(originalPoolData)) {
-                            if (!changedPools.includes(key)) {
+                            if (!currentPoolData[key]) {
                                 const sepIdx = key.indexOf('|');
                                 const poolType = key.substring(0, sepIdx);
                                 const poolName = key.substring(sepIdx + 1);
