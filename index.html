@@ -856,6 +856,31 @@
             color: #b8a080;
             line-height: 1.6;
         }
+
+        .add-pool-btn-container {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+        }
+
+        .add-pool-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #ff9a9e, #ff6b6b);
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .add-pool-btn:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body>
@@ -883,6 +908,10 @@
             <span class="action-btn-icon">⚙️</span>
             <span class="action-btn-text">设置</span>
         </div>
+    </div>
+
+    <div class="add-pool-btn-container" id="addPoolBtnContainer" style="display:none;">
+        <button class="add-pool-btn" onclick="openCreatePoolModal()">+ 新增池子</button>
     </div>
 
     <div class="modal-overlay" id="updateModal">
@@ -1043,6 +1072,10 @@
                 <div style="margin-bottom:15px;">
                     <label style="display:block;margin-bottom:5px;font-size:13px;">池子名称</label>
                     <input type="text" id="createPoolName" class="modal-input" placeholder="请输入池子名称">
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">累计抽数</label>
+                    <input type="number" id="createPoolTotalDraws" class="modal-input" min="0" value="0" placeholder="该池子累计抽了多少抽">
                 </div>
                 <button class="modal-btn" style="width:100%;background:#ff9a9e;color:#fff;" onclick="saveCreatePool()">确认创建</button>
             </div>
@@ -1454,6 +1487,7 @@
                 document.body.classList.remove('card-mode');
                 const editToggle = document.getElementById('cardModeToggle');
                 if (editToggle) editToggle.checked = false;
+                document.getElementById('addPoolBtnContainer').style.display = 'none';
                 renderStats();
                 return;
             }
@@ -1469,6 +1503,7 @@
                 originalPoolData[key].push(record);
             });
             isEditMode = true;
+            document.getElementById('addPoolBtnContainer').style.display = 'block';
             document.body.classList.add('edit-mode');
             document.body.classList.add('card-mode');
             const editToggle = document.getElementById('cardModeToggle');
@@ -1479,6 +1514,7 @@
         function closeEditModal() {
             isEditMode = false;
             document.body.classList.remove('edit-mode');
+            document.getElementById('addPoolBtnContainer').style.display = 'none';
             renderStats();
         }
 
@@ -1718,27 +1754,48 @@
             document.getElementById('addItemTime').value = new Date().toISOString().slice(0, 16);
             
             const poolSelect = document.getElementById('addItemPool');
-            poolSelect.innerHTML = '<option value="">请选择池子</option>';
+            const poolSelectContainer = poolSelect.parentElement.parentElement;
             
-            const backup = localStorage.getItem('pageData_backup');
-            if (backup) {
-                const pageData = parseBackupData(backup);
-                const poolNames = [...new Set(pageData.map(item => item.poolName))];
-                poolNames.forEach(name => {
-                    const option = document.createElement('option');
-                    option.value = name;
-                    option.textContent = name;
-                    if (poolName === name) {
-                        option.selected = true;
-                    }
-                    poolSelect.appendChild(option);
-                });
+            if (poolName) {
+                poolSelectContainer.style.display = 'none';
+                
+                const poolDisplay = document.getElementById('addItemPoolDisplay');
+                if (!poolDisplay) {
+                    const div = document.createElement('div');
+                    div.id = 'addItemPoolDisplay';
+                    div.style.cssText = 'margin-bottom:15px;padding:10px;background:#f5f0e6;border-radius:8px;font-size:14px;color:#8b6914;font-weight:bold;';
+                    poolSelectContainer.insertAdjacentElement('beforebegin', div);
+                }
+                document.getElementById('addItemPoolDisplay').textContent = `当前池子：${poolName}`;
+                
+                poolSelect.innerHTML = `<option value="${poolName}" selected>${poolName}</option>`;
+            } else {
+                poolSelectContainer.style.display = '';
+                
+                const poolDisplay = document.getElementById('addItemPoolDisplay');
+                if (poolDisplay) {
+                    poolDisplay.remove();
+                }
+                
+                poolSelect.innerHTML = '<option value="">请选择池子</option>';
+                
+                const backup = localStorage.getItem('pageData_backup');
+                if (backup) {
+                    const pageData = parseBackupData(backup);
+                    const poolNames = [...new Set(pageData.map(item => item.poolName))];
+                    poolNames.forEach(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        poolSelect.appendChild(option);
+                    });
+                }
+                
+                const newPoolOption = document.createElement('option');
+                newPoolOption.value = '__NEW_POOL__';
+                newPoolOption.textContent = '+ 新建池子';
+                poolSelect.appendChild(newPoolOption);
             }
-            
-            const newPoolOption = document.createElement('option');
-            newPoolOption.value = '__NEW_POOL__';
-            newPoolOption.textContent = '+ 新建池子';
-            poolSelect.appendChild(newPoolOption);
             
             renderCharList();
             document.getElementById('addItemModal').classList.add('active');
@@ -1840,6 +1897,7 @@
             }
             
             const poolType = document.getElementById('createPoolType').value;
+            const totalDraws = parseInt(document.getElementById('createPoolTotalDraws').value) || 0;
             
             closeCreatePoolModal();
             
@@ -1851,6 +1909,46 @@
             
             const lastOption = poolSelect.lastElementChild;
             poolSelect.insertBefore(newOption, lastOption);
+            
+            if (totalDraws > 0) {
+                const backup = localStorage.getItem('pageData_backup');
+                let pageData = backup ? parseBackupData(backup) : [];
+                
+                const batchSize = 10;
+                const batches = Math.floor(totalDraws / batchSize);
+                const remaining = totalDraws % batchSize;
+                
+                const now = new Date();
+                let timeOffset = 0;
+                
+                for (let i = 0; i < batches; i++) {
+                    pageData.push({
+                        summonType: '10',
+                        luckyBagIds: [],
+                        createTime: new Date(now.getTime() - timeOffset).toISOString().replace('T', ' ').substring(0, 19),
+                        poolId: Date.now() + i,
+                        gainIds: [],
+                        poolType: parseInt(poolType),
+                        poolName: poolName
+                    });
+                    timeOffset += 1000;
+                }
+                
+                if (remaining > 0) {
+                    pageData.push({
+                        summonType: remaining.toString(),
+                        luckyBagIds: [],
+                        createTime: new Date(now.getTime() - timeOffset).toISOString().replace('T', ' ').substring(0, 19),
+                        poolId: Date.now() + batches,
+                        gainIds: [],
+                        poolType: parseInt(poolType),
+                        poolName: poolName
+                    });
+                }
+                
+                localStorage.setItem('pageData_backup', JSON.stringify(pageData));
+                renderStats();
+            }
             
             alert('池子创建成功，请继续填写其他信息');
         }
