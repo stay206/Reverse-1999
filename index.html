@@ -1117,6 +1117,10 @@
                     <label style="display:block;margin-bottom:5px;font-size:13px;">累计抽数</label>
                     <input type="number" id="createPoolTotalDraws" class="modal-input" min="0" value="0" placeholder="该池子累计抽了多少抽">
                 </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">创建时间</label>
+                    <input type="datetime-local" id="createPoolTime" class="modal-input">
+                </div>
                 <button class="modal-btn" style="width:100%;background:#ff9a9e;color:#fff;" onclick="saveCreatePool()">确认创建</button>
             </div>
         </div>
@@ -1144,12 +1148,14 @@
                     <input type="text" id="editPoolName" class="modal-input" placeholder="请输入池子名称">
                 </div>
                 <div style="margin-bottom:15px;">
-                    <label style="display:block;margin-bottom:5px;font-size:13px;">UP角色ID</label>
-                    <input type="text" id="editPoolUpId" class="modal-input" placeholder="如: 3146，多个用逗号分隔">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">UP角色</label>
+                    <select id="editPoolUpChar" class="modal-input" style="appearance:none;">
+                        <option value="">请选择UP角色</option>
+                    </select>
                 </div>
                 <div style="margin-bottom:15px;">
-                    <label style="display:block;margin-bottom:5px;font-size:13px;">UP角色名称</label>
-                    <input type="text" id="editPoolUpName" class="modal-input" placeholder="如: 小瑞安侬，多个用逗号分隔">
+                    <div id="editPoolUpList" style="border:1px solid #ddd;border-radius:4px;padding:5px;max-height:100px;overflow-y:auto;"></div>
+                    <button class="modal-btn" style="width:100%;margin-top:5px;background:#4CAF50;color:#fff;font-size:12px;" onclick="addEditPoolUp()">添加到UP列表</button>
                 </div>
                 <button class="modal-btn" style="width:100%;background:#6bb0ff;color:#fff;" onclick="saveEditPool()">确认修改</button>
             </div>
@@ -1761,16 +1767,68 @@
             document.getElementById('editPoolType').value = record.poolType;
             document.getElementById('editPoolName').value = poolName;
             
-            const upInfo = poolUpMap[poolName];
-            if (upInfo && upInfo.upIds && upInfo.upIds.length > 0) {
-                document.getElementById('editPoolUpId').value = upInfo.upIds.join(',');
-                document.getElementById('editPoolUpName').value = upInfo.upIds.map(id => upInfo.upNames[id] || '').join(',');
-            } else {
-                document.getElementById('editPoolUpId').value = '';
-                document.getElementById('editPoolUpName').value = '';
-            }
+            const upSelect = document.getElementById('editPoolUpChar');
+            upSelect.innerHTML = '<option value="">请选择UP角色</option>';
+            Object.entries(allCharNames).forEach(([id, name]) => {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = `${id}: ${name}`;
+                upSelect.appendChild(option);
+            });
+            
+            renderEditPoolUpList(poolName);
             
             document.getElementById('editPoolModal').classList.add('active');
+        }
+        
+        function renderEditPoolUpList(poolName) {
+            const upListDiv = document.getElementById('editPoolUpList');
+            upListDiv.innerHTML = '';
+            
+            const upInfo = poolUpMap[poolName];
+            if (upInfo && upInfo.upIds && upInfo.upIds.length > 0) {
+                upInfo.upIds.forEach(id => {
+                    const name = upInfo.upNames[id] || id;
+                    const item = document.createElement('div');
+                    item.style.display = 'flex';
+                    item.style.justifyContent = 'space-between';
+                    item.style.alignItems = 'center';
+                    item.style.padding = '3px 5px';
+                    item.style.borderBottom = '1px solid #eee';
+                    item.innerHTML = `<span>${id}: ${name}</span><button onclick="removeEditPoolUp(${id})" style="color:red;border:none;background:none;font-size:14px;">×</button>`;
+                    upListDiv.appendChild(item);
+                });
+            } else {
+                upListDiv.innerHTML = '<span style="color:#999;font-size:12px;">暂无UP角色</span>';
+            }
+        }
+        
+        function addEditPoolUp() {
+            const upSelect = document.getElementById('editPoolUpChar');
+            const charId = upSelect.value;
+            if (!charId || !editingPoolName) return;
+            
+            if (!poolUpMap[editingPoolName]) {
+                poolUpMap[editingPoolName] = { upIds: [], upNames: {} };
+            }
+            
+            const id = parseInt(charId);
+            if (!poolUpMap[editingPoolName].upIds.includes(id)) {
+                poolUpMap[editingPoolName].upIds.push(id);
+                poolUpMap[editingPoolName].upNames[id] = allCharNames[charId] || charId;
+                renderEditPoolUpList(editingPoolName);
+            }
+        }
+        
+        function removeEditPoolUp(charId) {
+            if (!editingPoolName || !poolUpMap[editingPoolName]) return;
+            
+            const idx = poolUpMap[editingPoolName].upIds.indexOf(charId);
+            if (idx > -1) {
+                poolUpMap[editingPoolName].upIds.splice(idx, 1);
+                delete poolUpMap[editingPoolName].upNames[charId];
+                renderEditPoolUpList(editingPoolName);
+            }
         }
 
         function closeEditPoolModal() {
@@ -1783,8 +1841,6 @@
             
             const newPoolType = parseInt(document.getElementById('editPoolType').value);
             const newPoolName = document.getElementById('editPoolName').value.trim();
-            const upIds = document.getElementById('editPoolUpId').value.split(',').map(id => id.trim()).filter(id => id);
-            const upNames = document.getElementById('editPoolUpName').value.split(',').map(name => name.trim()).filter(name => name);
             
             if (!newPoolName) {
                 alert('请输入池子名称');
@@ -1803,15 +1859,9 @@
                 }
             });
             
-            if (upIds.length > 0) {
-                const upMap = {};
-                upIds.forEach((id, index) => {
-                    upMap[id] = upNames[index] || '';
-                });
-                poolUpMap[newPoolName] = { upIds: upIds, upNames: upMap };
-                if (editingPoolName !== newPoolName) {
-                    delete poolUpMap[editingPoolName];
-                }
+            if (poolUpMap[editingPoolName] && editingPoolName !== newPoolName) {
+                poolUpMap[newPoolName] = poolUpMap[editingPoolName];
+                delete poolUpMap[editingPoolName];
             }
             
             localStorage.setItem('pageData_backup', JSON.stringify(pageData));
@@ -2153,6 +2203,8 @@
             
             const poolType = document.getElementById('createPoolType').value;
             const totalDraws = parseInt(document.getElementById('createPoolTotalDraws').value) || 0;
+            const createTimeInput = document.getElementById('createPoolTime').value;
+            const baseTime = createTimeInput ? new Date(createTimeInput) : new Date();
             
             closeCreatePoolModal();
             
@@ -2173,7 +2225,7 @@
                 pageData.push({
                     summonType: '',
                     luckyBagIds: [],
-                    createTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
+                    createTime: baseTime.toISOString().replace('T', ' ').substring(0, 19),
                     poolId: Date.now(),
                     gainIds: [],
                     poolType: parseInt(poolType),
@@ -2186,14 +2238,13 @@
                 const batches = Math.floor(totalDraws / batchSize);
                 const remaining = totalDraws % batchSize;
                 
-                const now = new Date();
                 let timeOffset = 0;
                 
                 for (let i = 0; i < batches; i++) {
                     pageData.push({
                         summonType: '10',
                         luckyBagIds: [],
-                        createTime: new Date(now.getTime() - timeOffset).toISOString().replace('T', ' ').substring(0, 19),
+                        createTime: new Date(baseTime.getTime() - timeOffset).toISOString().replace('T', ' ').substring(0, 19),
                         poolId: Date.now() + i,
                         gainIds: [],
                         poolType: parseInt(poolType),
