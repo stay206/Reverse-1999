@@ -1393,6 +1393,17 @@
             document.getElementById('content').innerHTML = html;
         }
 
+        async function renderStats() {
+            try {
+                const pageData = await loadPageData();
+                await loadPoolUpMap(pageData);
+                const stats = analyzeData(pageData, poolUpMap);
+                render(stats);
+            } catch (e) {
+                console.error('Render failed:', e);
+            }
+        }
+
         async function initApp() {
             document.getElementById('content').innerHTML = '<div class="loading">加载中...</div>';
             try {
@@ -1404,17 +1415,6 @@
             } catch (e) {
                 document.getElementById('content').innerHTML = `<div class="loading">加载失败: ${e.message}</div>`;
                 console.error('Load failed:', e);
-            }
-        }
-
-        async function renderStats() {
-            try {
-                const pageData = await loadPageData();
-                await loadPoolUpMap(pageData);
-                const stats = analyzeData(pageData, poolUpMap);
-                render(stats);
-            } catch (e) {
-                console.error('Render failed:', e);
             }
         }
 
