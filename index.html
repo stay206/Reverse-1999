@@ -1439,6 +1439,7 @@
 
         let editingItem = null;
         let originalData = '';
+        let originalPoolData = {};
 
         async function openEditModal() {
             if (isEditMode) {
@@ -1458,6 +1459,15 @@
             }
             
             originalData = localStorage.getItem('pageData_backup') || '';
+            const data = parseBackupData(originalData);
+            originalPoolData = {};
+            data.forEach(record => {
+                const key = `${record.poolType}|${record.poolName}`;
+                if (!originalPoolData[key]) {
+                    originalPoolData[key] = [];
+                }
+                originalPoolData[key].push(record);
+            });
             isEditMode = true;
             document.body.classList.add('edit-mode');
             document.body.classList.add('card-mode');
@@ -1486,8 +1496,13 @@
                 if (token) {
                     try {
                         const pageData = parseBackupData(currentData);
-                        const result = await pushPoolDataToGitHub(pageData);
-                        alert(`修改已保存\n已推送 ${result.pushedCount} 个文件到 GitHub`);
+                        const changedPools = getChangedPools(pageData);
+                        if (changedPools.length > 0) {
+                            const result = await pushPoolDataToGitHub(pageData, changedPools);
+                            alert(`修改已保存\n已推送 ${result.pushedCount} 个文件到 GitHub`);
+                        } else {
+                            alert('数据未发生变化，无需推送');
+                        }
                     } catch (e) {
                         console.error('推送失败:', e);
                         alert('修改已保存到本地，但推送 GitHub 失败，请检查网络或 Token 设置');
@@ -1496,6 +1511,42 @@
                     alert('修改已保存到本地\n请在设置中配置 GitHub Token 以同步到仓库');
                 }
             }
+        }
+
+        function getChangedPools(currentData) {
+            const currentPoolData = {};
+            currentData.forEach(record => {
+                const key = `${record.poolType}|${record.poolName}`;
+                if (!currentPoolData[key]) {
+                    currentPoolData[key] = [];
+                }
+                currentPoolData[key].push(record);
+            });
+            
+            const changedPools = [];
+            for (const key of Object.keys(currentPoolData)) {
+                const currentRecords = currentPoolData[key];
+                const originalRecords = originalPoolData[key] || [];
+                
+                if (currentRecords.length !== originalRecords.length) {
+                    changedPools.push(key);
+                    continue;
+                }
+                
+                const currentStr = JSON.stringify(currentRecords.sort((a, b) => a.charId - b.charId));
+                const originalStr = JSON.stringify(originalRecords.sort((a, b) => a.charId - b.charId));
+                if (currentStr !== originalStr) {
+                    changedPools.push(key);
+                }
+            }
+            
+            for (const key of Object.keys(originalPoolData)) {
+                if (!currentPoolData[key]) {
+                    changedPools.push(key);
+                }
+            }
+            
+            return changedPools;
         }
 
         function handleSixStarClick(poolName, charId, draws) {
@@ -2046,7 +2097,7 @@
                 return false;
             }
 
-            const sha = await githubGetFileSha(path);
+            let sha = await githubGetFileSha(path);
             const body = {
                 message: message,
                 content: encodeBase64(content),
@@ -2056,11 +2107,23 @@
                 body.sha = sha;
             }
 
-            const response = await fetch(`${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`, {
+            let response = await fetch(`${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`, {
                 method: 'PUT',
                 headers: githubHeaders(),
                 body: JSON.stringify(body)
             });
+
+            if (response.status === 409) {
+                sha = await githubGetFileSha(path);
+                if (sha) {
+                    body.sha = sha;
+                    response = await fetch(`${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`, {
+                        method: 'PUT',
+                        headers: githubHeaders(),
+                        body: JSON.stringify(body)
+                    });
+                }
+            }
 
             if (!response.ok) {
                 const errData = await response.json();
@@ -2080,7 +2143,7 @@
             return `up:${up || '0:无'},\n`;
         }
 
-        async function pushPoolDataToGitHub(allData) {
+        async function pushPoolDataToGitHub(allData, changedPools = null) {
             const poolMap = {};
             allData.forEach(record => {
                 const pt = record.poolType;
@@ -2096,6 +2159,12 @@
             for (const poolType of Object.keys(poolMap)) {
                 const records = poolMap[poolType].sort((a, b) => new Date(a.createTime) - new Date(b.createTime));
                 const poolName = records[0].poolName;
+                const poolKey = `${poolType}|${poolName}`;
+
+                if (changedPools && !changedPools.includes(poolKey)) {
+                    continue;
+                }
+
                 const fileName = `${poolName}.josn`;
                 const dirPath = `poolType/${poolType}`;
                 const filePath = `${dirPath}/${fileName}`;
@@ -2118,11 +2187,13 @@
                 }
             }
 
-            const pageDataContent = allData
-                .sort((a, b) => new Date(a.createTime) - new Date(b.createTime))
-                .map(r => JSON.stringify(r) + ',')
-                .join('\n');
-            await githubCreateOrUpdateFile('pageData.josn', pageDataContent, '更新总抽卡数据');
+            if (!changedPools || changedPools.length > 0) {
+                const pageDataContent = allData
+                    .sort((a, b) => new Date(a.createTime) - new Date(b.createTime))
+                    .map(r => JSON.stringify(r) + ',')
+                    .join('\n');
+                await githubCreateOrUpdateFile('pageData.josn', pageDataContent, '更新总抽卡数据');
+            }
 
             return { pushedCount, newPools };
         }
