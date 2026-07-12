@@ -1103,17 +1103,7 @@
         async function loadPageData() {
             const backup = localStorage.getItem('pageData_backup');
             if (backup) {
-                const lines = backup.trim().split(/\r?\n/);
-                const data = [];
-                lines.forEach(line => {
-                    try {
-                        const jsonStr = line.trim().replace(/,$/, '');
-                        const obj = JSON.parse(jsonStr);
-                        data.push(obj);
-                    } catch (e) {
-                        console.warn('Failed to parse backup line:', line, e);
-                    }
-                });
+                const data = parseBackupData(backup);
                 if (data.length > 0) {
                     console.log('Loaded from localStorage backup:', data.length, 'records');
                     return data;
@@ -1136,9 +1126,31 @@
         }
 
         async function savePageData(data) {
-            const content = data.map(item => JSON.stringify(item) + ',').join('\n');
+            const content = JSON.stringify(data);
             localStorage.setItem('pageData_backup', content);
             console.log('Data saved to localStorage backup');
+        }
+
+        function parseBackupData(backup) {
+            if (!backup) return [];
+            try {
+                return JSON.parse(backup);
+            } catch (e) {
+                const lines = backup.trim().split(/\r?\n/);
+                const data = [];
+                lines.forEach(line => {
+                    try {
+                        const jsonStr = line.trim().replace(/,$/, '');
+                        if (jsonStr) {
+                            const obj = JSON.parse(jsonStr);
+                            data.push(obj);
+                        }
+                    } catch (err) {
+                        console.warn('Failed to parse backup line:', line, err);
+                    }
+                });
+                return data;
+            }
         }
 
         let poolUpMap = {};
@@ -1471,7 +1483,7 @@
             const backup = localStorage.getItem('pageData_backup');
             if (!backup) return;
             
-            let pageData = JSON.parse(backup);
+            let pageData = parseBackupData(backup);
             pageData = pageData.filter(item => !(item.poolName === poolName && item.charId === charId));
             localStorage.setItem('pageData_backup', JSON.stringify(pageData));
             
@@ -1562,7 +1574,7 @@
             
             const backup = localStorage.getItem('pageData_backup');
             if (backup) {
-                let pageData = JSON.parse(backup);
+                let pageData = parseBackupData(backup);
                 pageData.forEach(item => {
                     if (item.poolName === editingItemData.poolName && item.charId === editingItemData.charId) {
                         item.draws = draws;
@@ -1632,7 +1644,7 @@
             
             const backup = localStorage.getItem('pageData_backup');
             if (backup) {
-                const pageData = JSON.parse(backup);
+                const pageData = parseBackupData(backup);
                 const poolNames = [...new Set(pageData.map(item => item.poolName))];
                 poolNames.forEach(name => {
                     const option = document.createElement('option');
@@ -1712,7 +1724,7 @@
             }
             
             const backup = localStorage.getItem('pageData_backup');
-            let pageData = backup ? JSON.parse(backup) : [];
+            let pageData = backup ? parseBackupData(backup) : [];
             
             const newItem = {
                 summonType: '10',
