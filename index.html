@@ -195,14 +195,33 @@
             font-weight: 600;
             white-space: nowrap;
             min-width: 80px;
+            max-width: 300px;
             flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .draw-badge::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px);
         }
 
         .draw-badge span {
             color: #d4e8b8;
+            position: relative;
+            z-index: 1;
         }
 
         .draw-badge.abnormal {
+            background: linear-gradient(90deg, #8b2323, #a83232);
+        }
+
+        .draw-badge.super-bad {
             background: linear-gradient(90deg, #8b2323, #a83232);
         }
 
@@ -308,7 +327,13 @@
             border-radius: 12px;
             padding: 15px;
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toggle-group {
+            display: flex;
+            gap: 15px;
         }
 
         .stats-grid {
@@ -871,7 +896,9 @@
                         if (isBad) totalBad++;
 
                         let prob = '';
+                        let isSuperBad = false;
                         if (currentDraw > 60 && currentDraw <= 70) {
+                            isSuperBad = true;
                             const baseProb = 4;
                             const extraProb = (currentDraw - 60) * 2.5;
                             prob = `${(baseProb + extraProb).toFixed(1)}%`;
@@ -883,6 +910,7 @@
                             draws: currentDraw,
                             isBad: isBad,
                             prob: prob,
+                            isSuperBad: isSuperBad,
                             isAbnormal: currentDraw > 70
                         });
                         resetCurrentDraw();
@@ -909,19 +937,31 @@
         function renderPoolItem(poolName, poolData) {
             const hasSixStar = poolData.sixStars.length > 0;
             const sixStarHtml = hasSixStar
-                ? `<div class="six-star-list">${poolData.sixStars.map(s => `
+                ? `<div class="six-star-list">${poolData.sixStars.map(s => {
+                    const widthPercent = Math.min((s.draws / 70) * 100, 100);
+                    const badgeClass = s.isAbnormal ? 'abnormal' : (s.isSuperBad ? 'super-bad' : '');
+                    let tagHtml = '';
+                    if (s.isAbnormal) {
+                        tagHtml = '<span class="bad-tag">数据异常</span>';
+                    } else if (s.isBad) {
+                        tagHtml = '<span class="bad-tag">歪</span>';
+                    } else if (s.isSuperBad) {
+                        tagHtml = '<span class="bad-tag">超非</span>';
+                    }
+                    const probHtml = s.prob && !s.isAbnormal ? `<span class="prob-tag">${s.prob}</span>` : '';
+                    return `
                     <div class="six-star-item">
                         <div class="char-icon">
                             <img src="${getCharImageUrl(s.id)}" alt="${s.name}" onerror="this.style.display='none';this.parentElement.innerHTML='${s.name.charAt(0)}'">
                         </div>
                         <div class="draw-count">
-                            <div class="draw-badge${s.isAbnormal ? ' abnormal' : ''}"><span>${s.draws}</span>抽</div>
-                            ${s.isBad ? '<span class="bad-tag">歪</span>' : ''}
-                            ${s.prob ? '<span class="prob-tag">' + s.prob + '</span>' : ''}
-                            ${s.isAbnormal ? '<span class="abnormal-tag">数据异常</span>' : ''}
+                            <div class="draw-badge ${badgeClass}" style="width: ${widthPercent}%;"><span>${s.draws}</span>抽</div>
+                            ${tagHtml}
+                            ${probHtml}
                         </div>
                     </div>
-                `).join('')}</div>`
+                    `;
+                }).join('')}</div>`
                 : '<div class="no-six-star">该卡池暂无六星</div>';
 
             return `
@@ -947,6 +987,10 @@
 
             const html = `
                 <div class="toggle-bar">
+                    <div class="toggle-switch" onclick="toggleViewMode()">
+                        <span class="toggle-label">卡片方式</span>
+                        <div class="toggle-slider" id="toggleViewMode"></div>
+                    </div>
                     <div class="toggle-switch" onclick="toggleNoSixStarPool()">
                         <span class="toggle-label">隐藏空池</span>
                         <div class="toggle-slider" id="toggleNoSixStar"></div>
@@ -1342,6 +1386,7 @@
         }
 
         let hideNoSixStar = false;
+        let viewMode = 'list';
 
         function toggleNoSixStarPool() {
             hideNoSixStar = !hideNoSixStar;
@@ -1357,6 +1402,39 @@
                 slider.classList.remove('active');
                 items.forEach(item => {
                     item.style.display = '';
+                });
+            }
+        }
+
+        function toggleViewMode() {
+            viewMode = viewMode === 'list' ? 'card' : 'list';
+            const slider = document.getElementById('toggleViewMode');
+            const listItems = document.querySelectorAll('.six-star-list');
+            const items = document.querySelectorAll('.six-star-item');
+
+            if (viewMode === 'card') {
+                slider.classList.add('active');
+                listItems.forEach(list => {
+                    list.style.display = 'flex';
+                    list.style.flexWrap = 'wrap';
+                    list.style.gap = '8px';
+                });
+                items.forEach(item => {
+                    item.style.width = '140px';
+                    item.style.flexDirection = 'column';
+                    item.style.textAlign = 'center';
+                });
+            } else {
+                slider.classList.remove('active');
+                listItems.forEach(list => {
+                    list.style.display = '';
+                    list.style.flexWrap = '';
+                    list.style.gap = '';
+                });
+                items.forEach(item => {
+                    item.style.width = '';
+                    item.style.flexDirection = '';
+                    item.style.textAlign = '';
                 });
             }
         }
