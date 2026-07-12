@@ -143,13 +143,13 @@
             color: #fff;
             box-shadow: 0 2px 8px rgba(139, 105, 20, 0.3);
             position: relative;
-            overflow: hidden;
         }
 
         .char-icon img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            border-radius: 8px;
         }
 
         .char-icon::after {
@@ -161,6 +161,7 @@
             font-size: 8px;
             color: #d4a574;
             letter-spacing: -1px;
+            white-space: nowrap;
         }
 
         .char-info {
@@ -679,7 +680,7 @@
                     const text = await fetchText(`characters/${level}/gainIds.josn`);
                     const lines = text.trim().split(/\r?\n/);
                     lines.forEach(line => {
-                        const match = line.match(/^(\d+):(.+),?$/);
+                        const match = line.match(/^(\d+):(.+?),?\s*$/);
                         if (match) {
                             const id = parseInt(match[1]);
                             const name = match[2].trim();
