@@ -1407,6 +1407,17 @@
             }
         }
 
+        async function renderStats() {
+            try {
+                const pageData = await loadPageData();
+                await loadPoolUpMap(pageData);
+                const stats = analyzeData(pageData, poolUpMap);
+                render(stats);
+            } catch (e) {
+                console.error('Render failed:', e);
+            }
+        }
+
         initApp();
 
         function openModal() {
