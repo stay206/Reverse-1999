@@ -274,15 +274,15 @@
             flex-direction: column;
             align-items: center;
             text-align: center;
-            padding: 6px;
-            background: #3d302a;
+            padding: 8px 6px;
+            background: #f5f0e6;
             border-radius: 6px;
-            gap: 4px;
+            gap: 6px;
         }
 
         .card-mode .char-icon {
-            width: 44px;
-            height: 44px;
+            width: 48px;
+            height: 48px;
         }
 
         .card-mode .char-icon::after {
@@ -305,7 +305,7 @@
             text-align: center;
             border-radius: 0;
             background: transparent !important;
-            color: #3d302a !important;
+            color: #333 !important;
         }
 
         .card-mode .draw-badge::before {
@@ -313,7 +313,7 @@
         }
 
         .card-mode .draw-badge span {
-            color: #3d302a !important;
+            color: #333 !important;
         }
 
         .card-mode .bad-tag {
@@ -321,6 +321,10 @@
         }
 
         .card-mode .prob-tag {
+            display: none;
+        }
+
+        .card-mode .draw-unit {
             display: none;
         }
 
@@ -1021,7 +1025,7 @@
                             <img src="${getCharImageUrl(s.id)}" alt="${s.name}" onerror="this.style.display='none';this.parentElement.innerHTML='${s.name.charAt(0)}'">
                         </div>
                         <div class="draw-count">
-                            <div class="draw-badge ${badgeClass}" style="width: ${widthPercent}%;"><span>${s.draws}</span>抽</div>
+                            <div class="draw-badge ${badgeClass}" style="width: ${widthPercent}%;"><span>${s.draws}</span><span class="draw-unit">抽</span></div>
                             ${tagHtml}
                             ${probHtml}
                         </div>
