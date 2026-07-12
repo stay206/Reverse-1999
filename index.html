@@ -1922,42 +1922,33 @@
                 pageData.forEach(item => {
                     if (item.poolName === editingItemData.poolName && item.charId === editingItemData.charId) {
                         item.draws = draws;
-                        item.isUp = isUp;
+                        delete item.isUp;
                     }
                 });
                 localStorage.setItem('pageData_backup', JSON.stringify(pageData));
             }
             
-            await updatePoolUpMapFromPageData();
+            if (!poolUpMap[editingItemData.poolName]) {
+                poolUpMap[editingItemData.poolName] = { upIds: [], upNames: {} };
+            }
+            
+            const charId = parseInt(editingItemData.charId);
+            if (isUp) {
+                if (!poolUpMap[editingItemData.poolName].upIds.includes(charId)) {
+                    poolUpMap[editingItemData.poolName].upIds.push(charId);
+                    poolUpMap[editingItemData.poolName].upNames[charId] = name;
+                }
+            } else {
+                const idx = poolUpMap[editingItemData.poolName].upIds.indexOf(charId);
+                if (idx > -1) {
+                    poolUpMap[editingItemData.poolName].upIds.splice(idx, 1);
+                    delete poolUpMap[editingItemData.poolName].upNames[charId];
+                }
+            }
             
             closeEditItemModal();
             await loadCharacterData();
             renderStats();
-        }
-
-        async function updatePoolUpMapFromPageData() {
-            const backup = localStorage.getItem('pageData_backup');
-            if (!backup) return;
-            
-            const pageData = parseBackupData(backup);
-            const poolUpMapTemp = {};
-            
-            pageData.forEach(record => {
-                const poolName = record.poolName;
-                if (!poolUpMapTemp[poolName]) {
-                    poolUpMapTemp[poolName] = { upIds: [], upNames: {} };
-                }
-                
-                if (record.isUp && record.charId) {
-                    const charId = parseInt(record.charId);
-                    if (!poolUpMapTemp[poolName].upIds.includes(charId)) {
-                        poolUpMapTemp[poolName].upIds.push(charId);
-                        poolUpMapTemp[poolName].upNames[charId] = allCharNames[charId] || charId.toString();
-                    }
-                }
-            });
-            
-            poolUpMap = poolUpMapTemp;
         }
 
         async function saveCharToFile(charId, name, starLevel) {
@@ -2515,8 +2506,12 @@
         };
 
         function getPoolUpLine(poolName) {
-            const up = POOL_UP_CHARACTERS[poolName];
-            return `up:${up || '0:无'},\n`;
+            const upInfo = poolUpMap[poolName];
+            if (upInfo && upInfo.upIds && upInfo.upIds.length > 0) {
+                const upParts = upInfo.upIds.map(id => `${id}:${upInfo.upNames[id] || ''}`);
+                return `up:${upParts.join(',')},\n`;
+            }
+            return `up:0:无,\n`;
         }
 
         async function githubDeleteFile(path, message) {
