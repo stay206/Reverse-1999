@@ -182,8 +182,8 @@
 
         .draw-count {
             display: flex;
-            align-items: center;
-            gap: 5px;
+            flex-direction: column;
+            gap: 4px;
             width: 100%;
             max-width: 280px;
         }
@@ -229,6 +229,13 @@
             color: #d4e8b8;
             position: relative;
             z-index: 1;
+        }
+
+        .draw-tags {
+            display: flex;
+            gap: 6px;
+            margin-top: 4px;
+            flex-wrap: wrap;
         }
 
         .draw-badge.abnormal {
@@ -317,7 +324,10 @@
         }
 
         .card-mode .draw-badge-container {
-            display: none;
+            display: flex !important;
+            background: transparent !important;
+            height: auto !important;
+            padding: 0 !important;
         }
 
         .card-mode .draw-badge {
@@ -332,7 +342,7 @@
             background: transparent !important;
             color: #333 !important;
             height: auto;
-            display: flex;
+            display: flex !important;
             align-items: center;
             justify-content: center;
         }
@@ -355,10 +365,6 @@
 
         .card-mode .draw-unit {
             display: none;
-        }
-
-        .edit-mode .draw-badge {
-            display: flex !important;
         }
 
         .edit-mode .six-star-item {
@@ -1283,8 +1289,7 @@
                         <div class="draw-badge-container">
                             <div class="draw-badge ${badgeClass}" style="width: ${widthPercent}%;"><span>${s.draws}</span><span class="draw-unit">抽</span></div>
                         </div>
-                        ${tagHtml}
-                        ${probHtml}
+                        <div class="draw-tags">${tagHtml}${probHtml}</div>
                     </div>
                 </div>
                 `;
