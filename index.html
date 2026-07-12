@@ -1210,6 +1210,7 @@
             forwardData.forEach(record => {
                 const poolName = record.poolName;
                 const poolType = record.poolType;
+                const savedDraws = record.draws && parseInt(record.draws) > 0 ? parseInt(record.draws) : null;
 
                 record.gainIds.forEach((charId, index) => {
                     let currentDraw;
@@ -1217,15 +1218,15 @@
 
                     if (poolType === 3) {
                         type3Pity.currentDraw++;
-                        currentDraw = type3Pity.currentDraw;
+                        currentDraw = savedDraws || type3Pity.currentDraw;
                         resetCurrentDraw = () => { type3Pity.currentDraw = 0; };
                     } else if (poolType === 6) {
                         pools[poolName].currentDraw++;
-                        currentDraw = pools[poolName].currentDraw;
+                        currentDraw = savedDraws || pools[poolName].currentDraw;
                         resetCurrentDraw = () => { pools[poolName].currentDraw = 0; };
                     } else {
                         pools[poolName].currentDraw++;
-                        currentDraw = pools[poolName].currentDraw;
+                        currentDraw = savedDraws || pools[poolName].currentDraw;
                         resetCurrentDraw = () => { pools[poolName].currentDraw = 0; };
                     }
 
@@ -1275,10 +1276,7 @@
         }
 
         function getCharImageUrl(charId) {
-            const hexId = parseInt(charId).toString(16).toUpperCase().padStart(4, '0');
-            const dir1 = hexId[0];
-            const dir2 = hexId.substring(0, 2);
-            return `https://huiji-thumb.huijistatic.com/res1999/uploads/thumb/${dir1}/${dir2}/Headicon_large-${charId}01.png/114px-Headicon_large-${charId}01.png`;
+            return '';
         }
 
         function renderPoolItem(poolName, poolData) {
