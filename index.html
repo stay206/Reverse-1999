@@ -1424,12 +1424,12 @@
         let editingItem = null;
         let originalData = '';
 
-        function openEditModal() {
+        async function openEditModal() {
             if (isEditMode) {
                 if (hasDataChanged()) {
                     const result = confirm('检测到数据已修改，是否保存后退出？');
                     if (result) {
-                        saveChanges();
+                        await saveChanges();
                     }
                 }
                 isEditMode = false;
@@ -1461,11 +1461,24 @@
             return currentData !== originalData;
         }
 
-        function saveChanges() {
+        async function saveChanges() {
             const currentData = localStorage.getItem('pageData_backup');
             if (currentData) {
                 localStorage.setItem('pageData_backup_last_save', currentData);
-                alert('修改已保存');
+                
+                const token = getGitHubToken();
+                if (token) {
+                    try {
+                        const pageData = parseBackupData(currentData);
+                        const result = await pushPoolDataToGitHub(pageData);
+                        alert(`修改已保存\n已推送 ${result.pushedCount} 个文件到 GitHub`);
+                    } catch (e) {
+                        console.error('推送失败:', e);
+                        alert('修改已保存到本地，但推送 GitHub 失败，请检查网络或 Token 设置');
+                    }
+                } else {
+                    alert('修改已保存到本地\n请在设置中配置 GitHub Token 以同步到仓库');
+                }
             }
         }
 
