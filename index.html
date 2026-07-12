@@ -184,21 +184,35 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            width: 100%;
+            max-width: 280px;
+        }
+
+        .draw-badge-container {
+            flex: 1;
+            height: 28px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
         }
 
         .draw-badge {
             background: linear-gradient(90deg, #4a7c23, #6b9e31);
             color: #fff;
-            padding: 6px 14px;
+            height: 100%;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
-            white-space: nowrap;
-            min-width: 80px;
-            max-width: 300px;
-            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding-left: 10px;
+            padding-right: 10px;
             position: relative;
             overflow: hidden;
+            transition: width 0.3s ease;
+            white-space: nowrap;
         }
 
         .draw-badge::before {
@@ -299,6 +313,11 @@
             flex-direction: column;
             gap: 2px;
             width: 100%;
+            max-width: none;
+        }
+
+        .card-mode .draw-badge-container {
+            display: none;
         }
 
         .card-mode .draw-badge {
@@ -312,6 +331,8 @@
             border-radius: 0;
             background: transparent !important;
             color: #333 !important;
+            height: auto;
+            display: block;
         }
 
         .card-mode .draw-badge::before {
@@ -1191,7 +1212,9 @@
                             <img src="${getCharImageUrl(s.id)}" alt="${s.name}" onerror="this.style.display='none';this.parentElement.innerHTML='${s.name.charAt(0)}'">
                         </div>
                         <div class="draw-count">
-                            <div class="draw-badge ${badgeClass}" style="width: ${widthPercent}%;"><span>${s.draws}</span><span class="draw-unit">抽</span></div>
+                            <div class="draw-badge-container">
+                                <div class="draw-badge ${badgeClass}" style="width: ${widthPercent}%;"><span>${s.draws}</span><span class="draw-unit">抽</span></div>
+                            </div>
                             ${tagHtml}
                             ${probHtml}
                         </div>
