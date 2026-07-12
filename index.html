@@ -334,12 +334,81 @@
             display: none;
         }
 
+        .edit-mode .six-star-item {
+            position: relative;
+        }
+
+        .edit-mode .delete-btn {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 20px;
+            height: 20px;
+            background: #d63031;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .edit-mode .add-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.1);
+            border: 2px dashed #fff;
+            cursor: pointer;
+        }
+
+        .edit-mode .add-btn span {
+            font-size: 24px;
+            color: #fff;
+        }
+
         .no-six-star {
             text-align: center;
             padding: 20px 0;
             color: #5a4a3a;
             font-size: 13px;
             font-style: italic;
+        }
+
+        .char-icon {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .char-icon:hover::before {
+            content: attr(data-name);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 100;
+            margin-bottom: 4px;
+        }
+
+        .char-icon:hover::after {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid transparent;
+            border-top-color: rgba(0,0,0,0.9);
+            margin-bottom: -8px;
+            z-index: 100;
         }
 
         .stats-bar {
@@ -812,6 +881,96 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="editItemModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeEditItemModal()">×</button>
+            <div class="modal-header">
+                <div class="modal-title">编辑出货记录</div>
+            </div>
+            <div class="modal-body">
+                <div class="edit-item-char">
+                    <img id="editItemCharImg" src="" alt="" style="width:80px;height:80px;border-radius:8px;">
+                    <span id="editItemCharName" style="font-size:16px;font-weight:bold;"></span>
+                </div>
+                <div style="margin:15px 0;">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">出货抽数</label>
+                    <input type="number" id="editItemDraws" class="modal-input" min="1" max="70" style="width:100px;">
+                </div>
+                <div style="margin:15px 0;">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">是否UP</label>
+                    <div class="toggle-switch" onclick="toggleIsUp()">
+                        <span class="toggle-label" id="isUpLabel">否</span>
+                        <div class="toggle-slider" id="isUpToggle"></div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;margin:15px 0;">
+                    <button class="modal-btn" style="flex:1;" onclick="addBeforeCurrent()">在前方添加</button>
+                    <button class="modal-btn" style="flex:1;" onclick="addAfterCurrent()">在后方添加</button>
+                </div>
+                <div style="display:flex;gap:10px;">
+                    <button class="modal-btn" style="flex:1;background:#f0f0f0;color:#666;" onclick="deleteCurrentItem()">删除</button>
+                    <button class="modal-btn" style="flex:1;background:#ff9a9e;color:#fff;" onclick="saveEditItem()">确认</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addItemModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeAddItemModal()">×</button>
+            <div class="modal-header">
+                <div class="modal-title">新增出货</div>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:8px;font-size:13px;">请选择六星角色</label>
+                    <div id="addItemCharList" style="display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;"></div>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">出货抽数</label>
+                    <input type="number" id="addItemDraws" class="modal-input" min="1" max="70" value="1">
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">时间</label>
+                    <input type="datetime-local" id="addItemTime" class="modal-input">
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">对应池子名称</label>
+                    <div class="settings-item">
+                        <select id="addItemPool" class="modal-input" style="appearance:none;">
+                            <option value="">请选择池子</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="modal-btn" style="width:100%;background:#ff9a9e;color:#fff;" onclick="saveAddItem()">确认新增</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="createPoolModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeCreatePoolModal()">×</button>
+            <div class="modal-header">
+                <div class="modal-title">新建池子</div>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">池子类型</label>
+                    <select id="createPoolType" class="modal-input" style="appearance:none;">
+                        <option value="1">角色池</option>
+                        <option value="6">限定角色池</option>
+                        <option value="2">心相池</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-size:13px;">池子名称</label>
+                    <input type="text" id="createPoolName" class="modal-input" placeholder="请输入池子名称">
+                </div>
+                <button class="modal-btn" style="width:100%;background:#ff9a9e;color:#fff;" onclick="saveCreatePool()">确认创建</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let allCharNames = {};
         let sixStarIds = [];
@@ -1026,8 +1185,9 @@
                     }
                     const probHtml = s.prob && !s.isAbnormal ? `<span class="prob-tag">${s.prob}</span>` : '';
                     return `
-                    <div class="six-star-item">
-                        <div class="char-icon">
+                    <div class="six-star-item" data-id="${s.id}" data-pool="${poolName}" onclick="handleSixStarClick('${poolName}', ${s.id}, ${s.draws})">
+                        ${isEditMode ? `<div class="delete-btn" onclick="event.stopPropagation(); deleteSixStar('${poolName}', ${s.id})">×</div>` : ''}
+                        <div class="char-icon" data-name="${s.name}">
                             <img src="${getCharImageUrl(s.id)}" alt="${s.name}" onerror="this.style.display='none';this.parentElement.innerHTML='${s.name.charAt(0)}'">
                         </div>
                         <div class="draw-count">
@@ -1037,7 +1197,9 @@
                         </div>
                     </div>
                     `;
-                }).join('')}</div>`
+                }).join('')}
+                ${isEditMode ? `<div class="six-star-item add-btn" onclick="openAddItemModal()"><span>+</span><span style="font-size:12px;">新增</span></div>` : ''}
+                </div>`
                 : '<div class="no-six-star">该卡池暂无六星</div>';
 
             return `
@@ -1138,23 +1300,263 @@
             document.getElementById('settingsModal').classList.remove('active');
         }
 
+        let isEditMode = false;
+        let editingItem = null;
+
         function openEditModal() {
-            const modal = document.getElementById('editModal');
-            const textarea = document.getElementById('editDataInput');
-            const backup = localStorage.getItem('pageData_backup');
-            textarea.value = backup || '';
-            modal.classList.add('active');
+            isEditMode = true;
+            document.body.classList.add('edit-mode');
+            document.body.classList.add('card-mode');
+            const editToggle = document.getElementById('cardModeToggle');
+            if (editToggle) editToggle.checked = true;
+            renderStats();
         }
 
         function closeEditModal() {
-            document.getElementById('editModal').classList.remove('active');
+            isEditMode = false;
+            document.body.classList.remove('edit-mode');
+            renderStats();
         }
 
-        document.getElementById('editModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeEditModal();
+        function handleSixStarClick(poolName, charId, draws) {
+            if (!isEditMode) return;
+            openEditItemModal(poolName, charId, draws);
+        }
+
+        function deleteSixStar(poolName, charId) {
+            if (!isEditMode) return;
+            if (!confirm('确定删除该出货记录？')) return;
+            
+            const backup = localStorage.getItem('pageData_backup');
+            if (!backup) return;
+            
+            let pageData = JSON.parse(backup);
+            pageData = pageData.filter(item => !(item.poolName === poolName && item.charId === charId));
+            localStorage.setItem('pageData_backup', JSON.stringify(pageData));
+            
+            renderStats();
+        }
+
+        let editingItemData = null;
+
+        function openEditItemModal(poolName, charId, draws) {
+            editingItemData = { poolName, charId, draws };
+            const charName = allCharNames[charId] || '未知';
+            
+            document.getElementById('editItemCharImg').src = getCharImageUrl(charId);
+            document.getElementById('editItemCharName').textContent = charName;
+            document.getElementById('editItemDraws').value = draws;
+            
+            const isUp = poolUpMap[poolName] && poolUpMap[poolName].upIds && poolUpMap[poolName].upIds.includes(charId);
+            updateIsUpToggle(isUp);
+            
+            document.getElementById('editItemModal').classList.add('active');
+        }
+
+        function closeEditItemModal() {
+            document.getElementById('editItemModal').classList.remove('active');
+            editingItemData = null;
+        }
+
+        function updateIsUpToggle(isUp) {
+            const toggle = document.getElementById('isUpToggle');
+            const label = document.getElementById('isUpLabel');
+            if (isUp) {
+                toggle.style.transform = 'translateX(20px)';
+                toggle.style.backgroundColor = '#ff9a9e';
+                label.textContent = '是';
+            } else {
+                toggle.style.transform = 'translateX(0)';
+                toggle.style.backgroundColor = '#ccc';
+                label.textContent = '否';
             }
-        });
+        }
+
+        function toggleIsUp() {
+            const toggle = document.getElementById('isUpToggle');
+            const isUp = toggle.style.transform === 'translateX(20px)';
+            updateIsUpToggle(!isUp);
+        }
+
+        function saveEditItem() {
+            if (!editingItemData) return;
+            
+            const draws = parseInt(document.getElementById('editItemDraws').value);
+            if (!draws || draws < 1 || draws > 70) {
+                alert('请输入1-70之间的抽数');
+                return;
+            }
+            
+            const backup = localStorage.getItem('pageData_backup');
+            if (!backup) return;
+            
+            let pageData = JSON.parse(backup);
+            pageData.forEach(item => {
+                if (item.poolName === editingItemData.poolName && item.charId === editingItemData.charId) {
+                    item.draws = draws;
+                }
+            });
+            localStorage.setItem('pageData_backup', JSON.stringify(pageData));
+            
+            closeEditItemModal();
+            renderStats();
+        }
+
+        function deleteCurrentItem() {
+            if (!editingItemData) return;
+            deleteSixStar(editingItemData.poolName, editingItemData.charId);
+            closeEditItemModal();
+        }
+
+        function addBeforeCurrent() {
+            alert('前方添加功能暂未实现');
+        }
+
+        function addAfterCurrent() {
+            alert('后方添加功能暂未实现');
+        }
+
+        let selectedCharId = null;
+        let selectedPoolName = null;
+
+        function openAddItemModal() {
+            selectedCharId = null;
+            document.getElementById('addItemTime').value = new Date().toISOString().slice(0, 16);
+            
+            const poolSelect = document.getElementById('addItemPool');
+            poolSelect.innerHTML = '<option value="">请选择池子</option>';
+            
+            const backup = localStorage.getItem('pageData_backup');
+            if (backup) {
+                const pageData = JSON.parse(backup);
+                const poolNames = [...new Set(pageData.map(item => item.poolName))];
+                poolNames.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    poolSelect.appendChild(option);
+                });
+            }
+            
+            const newPoolOption = document.createElement('option');
+            newPoolOption.value = '__NEW_POOL__';
+            newPoolOption.textContent = '+ 新建池子';
+            poolSelect.appendChild(newPoolOption);
+            
+            renderCharList();
+            document.getElementById('addItemModal').classList.add('active');
+        }
+
+        function closeAddItemModal() {
+            document.getElementById('addItemModal').classList.remove('active');
+            selectedCharId = null;
+        }
+
+        function renderCharList() {
+            const container = document.getElementById('addItemCharList');
+            container.innerHTML = '';
+            
+            sixStarIds.forEach(id => {
+                const name = allCharNames[id] || '未知';
+                const div = document.createElement('div');
+                div.style.width = '60px';
+                div.style.padding = '8px';
+                div.style.textAlign = 'center';
+                div.style.cursor = 'pointer';
+                div.style.borderRadius = '8px';
+                div.style.background = selectedCharId === id ? '#ff9a9e' : '#f0f0f0';
+                div.style.transition = 'background 0.2s';
+                div.innerHTML = `<img src="${getCharImageUrl(id)}" style="width:40px;height:40px;border-radius:4px;"><div style="font-size:11px;margin-top:4px;">${name}</div>`;
+                div.onclick = () => {
+                    selectedCharId = id;
+                    renderCharList();
+                };
+                container.appendChild(div);
+            });
+        }
+
+        function saveAddItem() {
+            if (!selectedCharId) {
+                alert('请选择角色');
+                return;
+            }
+            
+            const draws = parseInt(document.getElementById('addItemDraws').value);
+            if (!draws || draws < 1 || draws > 70) {
+                alert('请输入1-70之间的抽数');
+                return;
+            }
+            
+            const time = document.getElementById('addItemTime').value;
+            if (!time) {
+                alert('请选择时间');
+                return;
+            }
+            
+            let poolName = document.getElementById('addItemPool').value;
+            if (!poolName) {
+                alert('请选择池子');
+                return;
+            }
+            
+            if (poolName === '__NEW_POOL__') {
+                openCreatePoolModal();
+                return;
+            }
+            
+            const backup = localStorage.getItem('pageData_backup');
+            let pageData = backup ? JSON.parse(backup) : [];
+            
+            const newItem = {
+                summonType: '10',
+                luckyBagIds: [],
+                createTime: time.replace('T', ' '),
+                poolId: Date.now(),
+                gainIds: [selectedCharId],
+                poolType: 6,
+                poolName: poolName,
+                charId: selectedCharId,
+                draws: draws
+            };
+            
+            pageData.push(newItem);
+            localStorage.setItem('pageData_backup', JSON.stringify(pageData));
+            
+            closeAddItemModal();
+            renderStats();
+        }
+
+        function openCreatePoolModal() {
+            document.getElementById('createPoolName').value = '';
+            document.getElementById('createPoolModal').classList.add('active');
+        }
+
+        function closeCreatePoolModal() {
+            document.getElementById('createPoolModal').classList.remove('active');
+        }
+
+        function saveCreatePool() {
+            const poolName = document.getElementById('createPoolName').value.trim();
+            if (!poolName) {
+                alert('请输入池子名称');
+                return;
+            }
+            
+            const poolType = document.getElementById('createPoolType').value;
+            
+            closeCreatePoolModal();
+            
+            const poolSelect = document.getElementById('addItemPool');
+            const newOption = document.createElement('option');
+            newOption.value = poolName;
+            newOption.textContent = poolName;
+            newOption.selected = true;
+            
+            const lastOption = poolSelect.lastElementChild;
+            poolSelect.insertBefore(newOption, lastOption);
+            
+            alert('池子创建成功，请继续填写其他信息');
+        }
 
         async function saveEditData() {
             const textarea = document.getElementById('editDataInput');
@@ -1201,6 +1603,24 @@
         document.getElementById('settingsModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeSettingsModal();
+            }
+        });
+
+        document.getElementById('editItemModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditItemModal();
+            }
+        });
+
+        document.getElementById('addItemModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddItemModal();
+            }
+        });
+
+        document.getElementById('createPoolModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCreatePoolModal();
             }
         });
 
