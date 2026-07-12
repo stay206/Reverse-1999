@@ -615,6 +615,10 @@
             <span class="action-btn-icon">↻</span>
             <span class="action-btn-text">更新</span>
         </div>
+        <div class="action-btn share" onclick="openEditModal()">
+            <span class="action-btn-icon">✏️</span>
+            <span class="action-btn-text">修改</span>
+        </div>
         <div class="action-btn share" onclick="openSettingsModal()">
             <span class="action-btn-icon">⚙️</span>
             <span class="action-btn-text">设置</span>
@@ -655,6 +659,26 @@
                         </div>
                         <div class="settings-hint">用于推送数据到GitHub仓库，Token将保存在本地localStorage中</div>
                         <button class="modal-btn settings-save-btn" onclick="saveGitHubToken()">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeEditModal()">×</button>
+            <div class="modal-header">
+                <div class="modal-title">手动修改数据</div>
+                <div class="modal-subtitle">编辑抽卡记录</div>
+            </div>
+            <div class="modal-body">
+                <div class="settings-content">
+                    <div class="settings-item">
+                        <div class="settings-label">抽卡记录数据 (JSON格式)</div>
+                        <textarea class="modal-input" id="editDataInput" rows="10" placeholder="在此输入或编辑抽卡记录数据..."></textarea>
+                        <div class="settings-hint">每行一条JSON记录，格式示例：{"summonType":"10","luckyBagIds":[],"createTime":"2026-04-30 09:59:54","poolId":37111,"gainIds":[3035,3034,3096,3058,3013,3026,3045,3031,3014,3049],"poolType":6,"poolName":"故事的新啼"}</div>
+                        <button class="modal-btn settings-save-btn" onclick="saveEditData()">保存修改</button>
                     </div>
                 </div>
             </div>
@@ -959,6 +983,66 @@
 
         function closeSettingsModal() {
             document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function openEditModal() {
+            const modal = document.getElementById('editModal');
+            const textarea = document.getElementById('editDataInput');
+            const backup = localStorage.getItem('pageData_backup');
+            textarea.value = backup || '';
+            modal.classList.add('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+
+        async function saveEditData() {
+            const textarea = document.getElementById('editDataInput');
+            const content = textarea.value.trim();
+            
+            if (!content) {
+                alert('请输入数据');
+                return;
+            }
+
+            const lines = content.split(/\r?\n/);
+            const data = [];
+            let errors = [];
+            
+            lines.forEach((line, index) => {
+                const trimmed = line.trim();
+                if (trimmed) {
+                    try {
+                        const jsonStr = trimmed.replace(/,$/, '');
+                        const obj = JSON.parse(jsonStr);
+                        data.push(obj);
+                    } catch (e) {
+                        errors.push(`第 ${index + 1} 行解析错误: ${e.message}`);
+                    }
+                }
+            });
+
+            if (errors.length > 0) {
+                alert('数据格式错误:\n' + errors.join('\n'));
+                return;
+            }
+
+            if (data.length === 0) {
+                alert('没有有效数据');
+                return;
+            }
+
+            await savePageData(data);
+            alert(`成功保存 ${data.length} 条记录`);
+            closeEditModal();
+            initApp();
         }
 
         document.getElementById('settingsModal').addEventListener('click', function(e) {
