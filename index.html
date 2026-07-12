@@ -120,10 +120,8 @@
         .six-star-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            padding: 12px;
+            gap: 10px;
+            padding: 8px 10px;
             transition: transform 0.2s;
         }
 
@@ -192,25 +190,53 @@
             background: linear-gradient(90deg, #4a7c23, #6b9e31);
             color: #fff;
             padding: 6px 14px;
-            border-radius: 20px;
+            border-radius: 6px;
             font-size: 14px;
             font-weight: 600;
-            box-shadow: 0 2px 6px rgba(74, 124, 35, 0.3);
             white-space: nowrap;
+            min-width: 80px;
+            flex-shrink: 0;
         }
 
         .draw-badge span {
             color: #d4e8b8;
         }
 
+        .draw-badge.abnormal {
+            background: linear-gradient(90deg, #8b2323, #a83232);
+        }
+
         .bad-tag {
             background: linear-gradient(90deg, #8b2323, #a83232);
             color: #fff;
-            padding: 2px 8px;
+            padding: 4px 8px;
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 5px;
+            line-height: 1;
+        }
+
+        .abnormal-tag {
+            background: linear-gradient(90deg, #8b2323, #a83232);
+            color: #fff;
+            padding: 4px 8px;
             border-radius: 4px;
             font-size: 10px;
             font-weight: 600;
             margin-left: 5px;
+            white-space: nowrap;
+        }
+
+        .prob-tag {
+            background: rgba(0,0,0,0.6);
+            color: #d4a574;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 5px;
+            white-space: nowrap;
         }
 
         .no-six-star {
@@ -844,11 +870,20 @@
                         const isBad = upId !== 0 && upId !== charId;
                         if (isBad) totalBad++;
 
+                        let prob = '';
+                        if (currentDraw > 60 && currentDraw <= 70) {
+                            const baseProb = 4;
+                            const extraProb = (currentDraw - 60) * 2.5;
+                            prob = `${(baseProb + extraProb).toFixed(1)}%`;
+                        }
+
                         pools[poolName].sixStars.push({
                             id: charId,
                             name: allCharNames[charId] || `角色${charId}`,
                             draws: currentDraw,
-                            isBad: isBad
+                            isBad: isBad,
+                            prob: prob,
+                            isAbnormal: currentDraw > 70
                         });
                         resetCurrentDraw();
                     }
@@ -879,13 +914,11 @@
                         <div class="char-icon">
                             <img src="${getCharImageUrl(s.id)}" alt="${s.name}" onerror="this.style.display='none';this.parentElement.innerHTML='${s.name.charAt(0)}'">
                         </div>
-                        <div class="char-info">
-                            <div class="char-name">${s.name}</div>
-                            <div class="char-id">ID: ${s.id}</div>
-                        </div>
                         <div class="draw-count">
-                            <div class="draw-badge"><span>${s.draws}</span>抽</div>
+                            <div class="draw-badge${s.isAbnormal ? ' abnormal' : ''}"><span>${s.draws}</span>抽</div>
                             ${s.isBad ? '<span class="bad-tag">歪</span>' : ''}
+                            ${s.prob ? '<span class="prob-tag">' + s.prob + '</span>' : ''}
+                            ${s.isAbnormal ? '<span class="abnormal-tag">数据异常</span>' : ''}
                         </div>
                     </div>
                 `).join('')}</div>`
