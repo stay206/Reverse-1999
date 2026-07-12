@@ -398,6 +398,25 @@
             color: #fff;
         }
 
+        .up-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #8b4513;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            z-index: 10;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .card-mode .up-badge {
+            top: -2px;
+            right: -2px;
+        }
+
         .no-six-star {
             text-align: center;
             padding: 20px 0;
@@ -1167,11 +1186,15 @@
                             prob = `${(baseProb + extraProb).toFixed(1)}%`;
                         }
 
+                        const upInfo = poolUpMap[poolName];
+                        const isUp = upInfo && upInfo.upIds && upInfo.upIds.includes(charId);
+                        
                         pools[poolName].sixStars.push({
                             id: charId,
                             name: allCharNames[charId] || `角色${charId}`,
                             draws: currentDraw,
                             isBad: isBad,
+                            isUp: isUp,
                             prob: prob,
                             isSuperBad: isSuperBad,
                             isAbnormal: currentDraw > 70
@@ -1213,8 +1236,9 @@
                     }
                     const probHtml = s.prob && !s.isAbnormal ? `<span class="prob-tag">${s.prob}</span>` : '';
                     return `
-                    <div class="six-star-item" data-id="${s.id}" data-pool="${poolName}" onclick="handleSixStarClick('${poolName}', ${s.id}, ${s.draws})">
+                    <div class="six-star-item" data-id="${s.id}" data-pool="${poolName}" onclick="handleSixStarClick('${poolName}', ${s.id}, ${s.draws})" data-is-up="${s.isUp}">
                         ${isEditMode ? `<div class="delete-btn" onclick="event.stopPropagation(); deleteSixStar('${poolName}', ${s.id})">×</div>` : ''}
+                        ${s.isUp ? '<div class="up-badge">UP</div>' : ''}
                         <div class="char-icon" data-name="${s.name}">
                             <img src="${getCharImageUrl(s.id)}" alt="${s.name}" onerror="this.style.display='none';this.parentElement.innerHTML='${s.name.charAt(0)}'">
                         </div>
