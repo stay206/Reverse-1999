@@ -1914,13 +1914,19 @@
             const backup = localStorage.getItem('pageData_backup');
             let pageData = backup ? parseBackupData(backup) : [];
             
+            let poolType = 6;
+            const existingRecord = pageData.find(item => item.poolName === poolName);
+            if (existingRecord) {
+                poolType = existingRecord.poolType;
+            }
+            
             const newItem = {
                 summonType: '10',
                 luckyBagIds: [],
                 createTime: time.replace('T', ' '),
                 poolId: Date.now(),
                 gainIds: [selectedCharId],
-                poolType: 6,
+                poolType: poolType,
                 poolName: poolName,
                 charId: selectedCharId,
                 draws: draws
@@ -1963,10 +1969,23 @@
             const lastOption = poolSelect.lastElementChild;
             poolSelect.insertBefore(newOption, lastOption);
             
+            const backup = localStorage.getItem('pageData_backup');
+            let pageData = backup ? parseBackupData(backup) : [];
+            
+            const existingPool = pageData.find(item => item.poolName === poolName);
+            if (!existingPool) {
+                pageData.push({
+                    summonType: '0',
+                    luckyBagIds: [],
+                    createTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
+                    poolId: Date.now(),
+                    gainIds: [],
+                    poolType: parseInt(poolType),
+                    poolName: poolName
+                });
+            }
+            
             if (totalDraws > 0) {
-                const backup = localStorage.getItem('pageData_backup');
-                let pageData = backup ? parseBackupData(backup) : [];
-                
                 const batchSize = 10;
                 const batches = Math.floor(totalDraws / batchSize);
                 const remaining = totalDraws % batchSize;
@@ -1998,10 +2017,10 @@
                         poolName: poolName
                     });
                 }
-                
-                localStorage.setItem('pageData_backup', JSON.stringify(pageData));
-                renderStats();
             }
+            
+            localStorage.setItem('pageData_backup', JSON.stringify(pageData));
+            renderStats();
             
             alert('池子创建成功，请继续填写其他信息');
         }
