@@ -1171,11 +1171,27 @@
                 try {
                     const text = await fetchText(filePath);
                     const firstLine = text.trim().split('\n')[0];
-                    const match = firstLine.match(/^up:(\d+):/);
-                    poolUpMap[poolName] = match ? parseInt(match[1]) : 0;
+                    const upIds = [];
+                    const upNames = {};
+                    if (firstLine.startsWith('up:')) {
+                        const parts = firstLine.substring(3).split(',');
+                        parts.forEach(part => {
+                            const item = part.trim();
+                            if (item) {
+                                const [id, name] = item.split(':');
+                                if (id && id !== '0') {
+                                    upIds.push(parseInt(id));
+                                    if (name) {
+                                        upNames[parseInt(id)] = name;
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    poolUpMap[poolName] = { upIds, upNames };
                 } catch (e) {
                     console.warn(`Failed to load pool up data: ${filePath}`, e);
-                    poolUpMap[poolName] = 0;
+                    poolUpMap[poolName] = { upIds: [], upNames: {} };
                 }
             }
             console.log('Pool up map loaded:', poolUpMap);
@@ -1233,8 +1249,8 @@
                     if (sixStarIds.includes(charId)) {
                         totalSixStars++;
 
-                        const upId = poolUpMap[poolName] || 0;
-                        const isBad = upId !== 0 && upId !== charId;
+                        const upInfo = poolUpMap[poolName];
+                        const isBad = upInfo && upInfo.upIds.length > 0 && !upInfo.upIds.includes(charId);
                         if (isBad) totalBad++;
 
                         let prob = '';
