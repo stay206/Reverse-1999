@@ -258,6 +258,65 @@
             white-space: nowrap;
         }
 
+        .card-mode .pool-item {
+            padding: 10px;
+        }
+
+        .card-mode .six-star-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 0;
+        }
+
+        .card-mode .six-star-item {
+            width: 70px;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 6px;
+            background: #3d302a;
+            border-radius: 6px;
+            gap: 4px;
+        }
+
+        .card-mode .char-icon {
+            width: 44px;
+            height: 44px;
+        }
+
+        .card-mode .char-icon::after {
+            display: none;
+        }
+
+        .card-mode .draw-count {
+            flex-direction: column;
+            gap: 2px;
+            width: 100%;
+        }
+
+        .card-mode .draw-badge {
+            width: 100%;
+            min-width: auto;
+            max-width: none;
+            padding: 3px 6px;
+            font-size: 11px;
+            text-align: center;
+            border-radius: 4px;
+        }
+
+        .card-mode .bad-tag {
+            margin-left: 0;
+            font-size: 9px;
+            padding: 1px 6px;
+        }
+
+        .card-mode .prob-tag {
+            margin-left: 0;
+            font-size: 9px;
+            padding: 1px 6px;
+        }
+
         .no-six-star {
             text-align: center;
             padding: 20px 0;
@@ -1409,33 +1468,14 @@
         function toggleViewMode() {
             viewMode = viewMode === 'list' ? 'card' : 'list';
             const slider = document.getElementById('toggleViewMode');
-            const listItems = document.querySelectorAll('.six-star-list');
-            const items = document.querySelectorAll('.six-star-item');
+            const body = document.body;
 
             if (viewMode === 'card') {
                 slider.classList.add('active');
-                listItems.forEach(list => {
-                    list.style.display = 'flex';
-                    list.style.flexWrap = 'wrap';
-                    list.style.gap = '8px';
-                });
-                items.forEach(item => {
-                    item.style.width = '140px';
-                    item.style.flexDirection = 'column';
-                    item.style.textAlign = 'center';
-                });
+                body.classList.add('card-mode');
             } else {
                 slider.classList.remove('active');
-                listItems.forEach(list => {
-                    list.style.display = '';
-                    list.style.flexWrap = '';
-                    list.style.gap = '';
-                });
-                items.forEach(item => {
-                    item.style.width = '';
-                    item.style.flexDirection = '';
-                    item.style.textAlign = '';
-                });
+                body.classList.remove('card-mode');
             }
         }
     </script>
