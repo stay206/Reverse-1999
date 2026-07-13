@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>重返未来1999 - 抽卡统计</title>
+    <link rel="icon" href="img/icon.png" type="image/png">
     <style>
         * {
             margin: 0;
@@ -924,7 +925,7 @@
 <body>
     <div class="header">
         <div class="header-left">
-            <div class="avatar"><img src="icon.png" alt="重返未来1999"></div>
+            <div class="avatar"><img src="img/icon.png" alt="重返未来1999"></div>
             <div>
                 <div class="title">重返未来：1999</div>
             </div>
@@ -956,7 +957,7 @@
         <div class="modal-content">
             <button class="modal-close" onclick="closeModal()">×</button>
             <div class="modal-header">
-                <div class="modal-avatar"><img src="icon.png" alt="重返未来1999"></div>
+                <div class="modal-avatar"><img src="img/icon.png" alt="重返未来1999"></div>
                 <div class="modal-title">更新抽卡数据</div>
                 <div class="modal-subtitle">从征集分析链接获取数据</div>
             </div>
@@ -1184,6 +1185,7 @@
             fourStarIds = [];
             threeStarIds = [];
             twoStarIds = [];
+            charImageFiles = {};
 
             const starLevels = [2, 3, 4, 5, 6];
             for (const level of starLevels) {
@@ -1212,6 +1214,13 @@
                 } catch (e) {
                     console.warn(`Failed to load characters/${level}/gainIds.josn`, e);
                 }
+            }
+
+            try {
+                const text = await fetchText(`img/characters/imageMap.json`);
+                charImageFiles = JSON.parse(text);
+            } catch (e) {
+                console.warn(`Failed to load img/characters/imageMap.json`, e);
             }
         }
 
@@ -1269,6 +1278,7 @@
         }
 
         let poolUpMap = {};
+        let charImageFiles = {};
 
         async function loadPoolUpMap(pageData) {
             poolUpMap = {};
@@ -1420,6 +1430,10 @@
         }
 
         function getCharImageUrl(charId) {
+            const imageFile = charImageFiles[charId];
+            if (imageFile) {
+                return `img/characters/${imageFile}`;
+            }
             return '';
         }
 
