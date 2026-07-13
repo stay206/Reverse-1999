@@ -12,15 +12,19 @@ Reverse-1999/
 │   ├── 4/gainIds.json   # 4星角色列表
 │   ├── 5/gainIds.json   # 5星角色列表
 │   └── 6/gainIds.json   # 6星角色列表
+├── img/                 # 图片资源目录
+│   ├── characters/      # 角色头像图片
+│   │   ├── *.png        # 角色头像文件（命名格式：角色ID_角色名称.png）
+│   │   └── imageMap.json # 角色图片映射表
+│   └── icon.png         # 网页头像图标
 ├── poolType/            # 卡池类型目录
 │   ├── 1/               # 新人 & 常驻征集
 │   ├── 3/               # UP池（活动池）
 │   ├── 6/               # 限定征集
 │   ├── 7/               # 限时活动征集
 │   └── 12/              # 湖的涟漪征集
-├── pageData.json        # 抽卡记录数据
+├── pageData.json        # 抽卡记录数据（完整JSON数组格式）
 ├── index.html           # 抽卡统计网页
-├── icon.png             # 网页头像图标
 └── README.md            # 项目说明
 ```
 

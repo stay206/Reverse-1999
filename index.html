@@ -1191,7 +1191,7 @@
             const starLevels = [2, 3, 4, 5, 6];
             for (const level of starLevels) {
                 try {
-                    const text = await fetchText(`characters/${level}/gainIds.josn`);
+                    const text = await fetchText(`characters/${level}/gainIds.json`);
                     const lines = text.trim().split(/\r?\n/);
                     lines.forEach(line => {
                         const match = line.match(/^(\d+):(.+?),?\s*$/);
@@ -1213,7 +1213,7 @@
                         }
                     });
                 } catch (e) {
-                    console.warn(`Failed to load characters/${level}/gainIds.josn`, e);
+                    console.warn(`Failed to load characters/${level}/gainIds.json`, e);
                 }
             }
 
@@ -1309,7 +1309,7 @@
                 const sepIdx = key.indexOf('|');
                 const poolType = key.substring(0, sepIdx);
                 const poolName = key.substring(sepIdx + 1);
-                const filePath = `poolType/${poolType}/${poolName}.josn`;
+                const filePath = `poolType/${poolType}/${poolName}.json`;
                 try {
                     const text = await fetchText(filePath);
                     const firstLine = text.trim().split('\n')[0];
@@ -2752,7 +2752,7 @@
 
             if (deletedPools) {
                 for (const { poolType, poolName } of deletedPools) {
-                    const fileName = `${poolName}.josn`;
+                    const fileName = `${poolName}.json`;
                     const filePath = `poolType/${poolType}/${fileName}`;
                     try {
                         const result = await githubDeleteFile(filePath, `删除池子: ${poolName}`);
@@ -2774,7 +2774,7 @@
 
                 const sortedRecords = records.sort((a, b) => new Date(a.createTime) - new Date(b.createTime));
 
-                const fileName = `${poolName}.josn`;
+                const fileName = `${poolName}.json`;
                 const dirPath = `poolType/${poolType}`;
                 const filePath = `${dirPath}/${fileName}`;
 
@@ -2801,7 +2801,7 @@
                     .sort((a, b) => new Date(a.createTime) - new Date(b.createTime))
                     .map(r => JSON.stringify(r) + ',')
                     .join('\n');
-                await githubCreateOrUpdateFile('pageData.josn', pageDataContent, '更新总抽卡数据');
+                await githubCreateOrUpdateFile('pageData.json', pageDataContent, '更新总抽卡数据');
             }
 
             return { pushedCount, deletedCount, newPools };
