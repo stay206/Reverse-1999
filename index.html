@@ -1565,8 +1565,10 @@
 
         function getDrawLevel(draws) {
             if (draws <= 10) return { level: 'green', luck: 'super-good', text: '超欧' };
-            if (draws <= 30) return { level: 'green', luck: 'good', text: '欧' };
+            if (draws <= 20) return { level: 'green', luck: 'good', text: '欧' };
+            if (draws <= 30) return { level: 'green', luck: 'normal', text: '' };
             if (draws <= 50) return { level: 'yellow', luck: 'normal', text: '' };
+            if (draws <= 54) return { level: 'red', luck: 'normal', text: '' };
             if (draws <= 60) return { level: 'red', luck: 'bad', text: '非' };
             return { level: 'red', luck: 'super-bad', text: '超非' };
         }
