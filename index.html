@@ -462,6 +462,10 @@
             display: none;
         }
 
+        .card-mode .luck-tag {
+            display: none;
+        }
+
         .card-mode .draw-unit {
             display: none;
         }
@@ -530,6 +534,53 @@
             border-radius: 4px;
             z-index: 10;
             box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .time-mode .up-badge {
+            display: block;
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: linear-gradient(135deg, #d4a574, #b8966a);
+            color: #8b4513;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            z-index: 10;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .time-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .year-separator {
+            padding: 15px 20px;
+            background: linear-gradient(90deg, rgba(212,165,116,0.1), rgba(212,165,116,0.05));
+            color: #d4a574;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 5px;
+            border-left: 3px solid #d4a574;
+        }
+
+        .time-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            background: rgba(139,118,94,0.1);
+            border-radius: 8px;
+        }
+
+        .acquire-date {
+            font-size: 12px;
+            color: #8b7660;
+            margin-left: auto;
+            font-weight: 500;
         }
 
         .no-six-star {
@@ -1514,8 +1565,8 @@
 
         function getDrawLevel(draws) {
             if (draws <= 10) return { level: 'green', luck: 'super-good', text: '超欧' };
-            if (draws <= 20) return { level: 'green', luck: 'good', text: '欧' };
-            if (draws <= 40) return { level: 'yellow', luck: 'normal', text: '正常' };
+            if (draws <= 30) return { level: 'green', luck: 'good', text: '欧' };
+            if (draws <= 50) return { level: 'yellow', luck: 'normal', text: '' };
             if (draws <= 60) return { level: 'red', luck: 'bad', text: '非' };
             return { level: 'red', luck: 'super-bad', text: '超非' };
         }
@@ -1526,15 +1577,21 @@
                 const widthPercent = Math.min((s.draws / 70) * 100, 100);
                 const drawLevel = getDrawLevel(s.draws);
                 const badgeClass = s.isAbnormal ? 'abnormal' : (s.isSuperBad ? 'super-bad' : drawLevel.level);
-                let tagHtml = '';
+                
+                let tags = [];
                 if (s.isAbnormal) {
-                    tagHtml = '<span class="bad-tag">数据异常</span>';
+                    tags.push('<span class="bad-tag">数据异常</span>');
                 } else if (s.isBad) {
-                    tagHtml = '<span class="bad-tag">歪</span>';
-                } else {
-                    tagHtml = `<span class="luck-tag ${drawLevel.luck}">${drawLevel.text}</span>`;
+                    tags.push('<span class="bad-tag">歪</span>');
                 }
+                
+                if (!s.isAbnormal && drawLevel.text) {
+                    tags.push(`<span class="luck-tag ${drawLevel.luck}">${drawLevel.text}</span>`);
+                }
+                
                 const probHtml = s.prob && !s.isAbnormal ? `<span class="prob-tag">${s.prob}</span>` : '';
+                const tagHtml = tags.join('');
+                
                 return `
                 <div class="six-star-item" data-id="${s.id}" data-pool="${poolName}" data-original-index="${s.originalIndex}" data-gain-index="${s.gainIndex}" data-pool-id="${s.poolId}" data-create-time="${s.createTime}" onclick="handleSixStarClick('${poolName}', ${s.id}, ${s.draws}, ${s.originalIndex}, ${s.gainIndex}, '${s.poolId}', '${s.createTime}')" data-is-up="${s.isUp}">
                     ${isEditMode ? `<div class="delete-btn" onclick="event.stopPropagation(); deleteSixStar('${poolName}', ${s.id}, ${s.originalIndex}, ${s.gainIndex}, '${s.poolId}', '${s.createTime}')">×</div>` : ''}
@@ -1570,14 +1627,79 @@
         }
 
         function render(stats) {
-            const poolNames = Object.keys(stats.pools).sort((a, b) => {
-                return new Date(stats.pools[b].lastTime) - new Date(stats.pools[a].lastTime);
-            });
-            
             let poolsHtml = '';
-            poolNames.forEach(name => {
-                poolsHtml += renderPoolItem(name, stats.pools[name]);
-            });
+            
+            if (timeMode) {
+                const allSixStars = [];
+                Object.values(stats.pools).forEach(poolData => {
+                    poolData.sixStars.forEach(s => {
+                        allSixStars.push(s);
+                    });
+                });
+                
+                allSixStars.sort((a, b) => {
+                    return new Date(a.createTime) - new Date(b.createTime);
+                });
+                
+                let lastYear = '';
+                poolsHtml = '<div class="time-list">';
+                allSixStars.forEach(s => {
+                    const createTime = new Date(s.createTime);
+                    const year = createTime.getFullYear();
+                    const month = String(createTime.getMonth() + 1).padStart(2, '0');
+                    const day = String(createTime.getDate()).padStart(2, '0');
+                    const dateStr = `${month}-${day}`;
+                    
+                    if (year !== lastYear) {
+                        poolsHtml += `<div class="year-separator">${year}年</div>`;
+                        lastYear = year;
+                    }
+                    
+                    const widthPercent = Math.min((s.draws / 70) * 100, 100);
+                    const drawLevel = getDrawLevel(s.draws);
+                    const badgeClass = s.isAbnormal ? 'abnormal' : (s.isSuperBad ? 'super-bad' : drawLevel.level);
+                    
+                    let tags = [];
+                    if (s.isAbnormal) {
+                        tags.push('<span class="bad-tag">数据异常</span>');
+                    } else if (s.isBad) {
+                        tags.push('<span class="bad-tag">歪</span>');
+                    }
+                    
+                    if (!s.isAbnormal && drawLevel.text) {
+                        tags.push(`<span class="luck-tag ${drawLevel.luck}">${drawLevel.text}</span>`);
+                    }
+                    
+                    const probHtml = s.prob && !s.isAbnormal ? `<span class="prob-tag">${s.prob}</span>` : '';
+                    const tagHtml = tags.join('');
+                    
+                    poolsHtml += `
+                    <div class="six-star-item time-item" data-id="${s.id}" data-pool="${s.poolName}" data-original-index="${s.originalIndex}" data-gain-index="${s.gainIndex}" data-pool-id="${s.poolId}" data-create-time="${s.createTime}" onclick="handleSixStarClick('${s.poolName}', ${s.id}, ${s.draws}, ${s.originalIndex}, ${s.gainIndex}, '${s.poolId}', '${s.createTime}')" data-is-up="${s.isUp}">
+                        ${isEditMode ? `<div class="delete-btn" onclick="event.stopPropagation(); deleteSixStar('${s.poolName}', ${s.id}, ${s.originalIndex}, ${s.gainIndex}, '${s.poolId}', '${s.createTime}')">×</div>` : ''}
+                        ${s.isUp ? '<div class="up-badge">UP</div>' : ''}
+                        <div class="char-icon" data-name="${s.name}">
+                            <img src="${getCharImageUrl(s.id)}" alt="${s.name}" onerror="this.style.display='none';this.parentElement.innerHTML='${s.name.charAt(0)}'">
+                        </div>
+                        <div class="draw-count">
+                            <div class="draw-badge-container">
+                                <div class="draw-badge ${badgeClass}" style="width: ${widthPercent}%;"><span>${s.draws}</span><span class="draw-unit">抽</span></div>
+                            </div>
+                            <div class="draw-tags">${tagHtml}${probHtml}</div>
+                        </div>
+                        <div class="acquire-date">${dateStr}</div>
+                    </div>
+                    `;
+                });
+                poolsHtml += '</div>';
+            } else {
+                const poolNames = Object.keys(stats.pools).sort((a, b) => {
+                    return new Date(stats.pools[b].lastTime) - new Date(stats.pools[a].lastTime);
+                });
+                
+                poolNames.forEach(name => {
+                    poolsHtml += renderPoolItem(name, stats.pools[name]);
+                });
+            }
 
             const html = `
                 <div class="toggle-bar">
@@ -1588,6 +1710,10 @@
                     <div class="toggle-switch" onclick="toggleNoSixStarPool()">
                         <span class="toggle-label">隐藏空池</span>
                         <div class="toggle-slider" id="toggleNoSixStar"></div>
+                    </div>
+                    <div class="toggle-switch" onclick="toggleTimeMode()">
+                        <span class="toggle-label">按时间展示</span>
+                        <div class="toggle-slider" id="toggleTimeMode"></div>
                     </div>
                 </div>
                 <div class="stats-bar">
@@ -2891,6 +3017,7 @@
 
         let hideNoSixStar = false;
         let viewMode = 'list';
+        let timeMode = false;
 
         function toggleNoSixStarPool() {
             hideNoSixStar = !hideNoSixStar;
@@ -2922,6 +3049,22 @@
                 slider.classList.remove('active');
                 body.classList.remove('card-mode');
             }
+        }
+
+        function toggleTimeMode() {
+            timeMode = !timeMode;
+            const slider = document.getElementById('toggleTimeMode');
+            const body = document.body;
+
+            if (timeMode) {
+                slider.classList.add('active');
+                body.classList.add('time-mode');
+            } else {
+                slider.classList.remove('active');
+                body.classList.remove('time-mode');
+            }
+            
+            renderStats();
         }
     </script>
 </body>
