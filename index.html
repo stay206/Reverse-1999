@@ -1812,7 +1812,8 @@
             
             localStorage.setItem('pageData_backup', JSON.stringify(pageData));
             
-            renderStats();
+            const stats = analyzeData(pageData, poolUpMap);
+            render(stats);
         }
 
         function deletePool(poolName) {
@@ -1841,7 +1842,10 @@
             pageData = otherPools;
             localStorage.setItem('pageData_backup', JSON.stringify(pageData));
             
-            renderStats();
+            delete poolUpMap[poolName];
+            
+            const stats = analyzeData(pageData, poolUpMap);
+            render(stats);
         }
 
         let editingPoolName = null;
@@ -2004,7 +2008,9 @@
             localStorage.setItem('pageData_backup', JSON.stringify(pageData));
             
             closeEditPoolModal();
-            renderStats();
+            
+            const stats = analyzeData(pageData, poolUpMap);
+            render(stats);
         }
 
         let editingItemData = null;
@@ -2127,7 +2133,13 @@
             
             closeEditItemModal();
             await loadCharacterData();
-            renderStats();
+            
+            const backup = localStorage.getItem('pageData_backup');
+            if (backup) {
+                const pageData = parseBackupData(backup);
+                const stats = analyzeData(pageData, poolUpMap);
+                render(stats);
+            }
         }
 
         async function saveCharToFile(charId, name, starLevel) {
