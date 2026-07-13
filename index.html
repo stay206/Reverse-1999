@@ -576,11 +576,47 @@
             border-radius: 8px;
         }
 
+        .char-icon-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
         .acquire-date {
-            font-size: 12px;
+            font-size: 11px;
             color: #8b7660;
-            margin-left: auto;
             font-weight: 500;
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 40px;
+            height: 40px;
+            background: rgba(139,118,94,0.9);
+            border: none;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .back-to-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .back-to-top:hover {
+            background: rgba(212,165,116,0.9);
         }
 
         .no-six-star {
@@ -1640,7 +1676,7 @@
                 });
                 
                 allSixStars.sort((a, b) => {
-                    return new Date(a.createTime) - new Date(b.createTime);
+                    return new Date(b.createTime) - new Date(a.createTime);
                 });
                 
                 let lastYear = '';
@@ -1679,8 +1715,11 @@
                     <div class="six-star-item time-item" data-id="${s.id}" data-pool="${s.poolName}" data-original-index="${s.originalIndex}" data-gain-index="${s.gainIndex}" data-pool-id="${s.poolId}" data-create-time="${s.createTime}" onclick="handleSixStarClick('${s.poolName}', ${s.id}, ${s.draws}, ${s.originalIndex}, ${s.gainIndex}, '${s.poolId}', '${s.createTime}')" data-is-up="${s.isUp}">
                         ${isEditMode ? `<div class="delete-btn" onclick="event.stopPropagation(); deleteSixStar('${s.poolName}', ${s.id}, ${s.originalIndex}, ${s.gainIndex}, '${s.poolId}', '${s.createTime}')">×</div>` : ''}
                         ${s.isUp ? '<div class="up-badge">UP</div>' : ''}
-                        <div class="char-icon" data-name="${s.name}">
-                            <img src="${getCharImageUrl(s.id)}" alt="${s.name}" onerror="this.style.display='none';this.parentElement.innerHTML='${s.name.charAt(0)}'">
+                        <div class="char-icon-container">
+                            <div class="char-icon" data-name="${s.name}">
+                                <img src="${getCharImageUrl(s.id)}" alt="${s.name}" onerror="this.style.display='none';this.parentElement.innerHTML='${s.name.charAt(0)}'">
+                            </div>
+                            <div class="acquire-date">${dateStr}</div>
                         </div>
                         <div class="draw-count">
                             <div class="draw-badge-container">
@@ -1688,7 +1727,6 @@
                             </div>
                             <div class="draw-tags">${tagHtml}${probHtml}</div>
                         </div>
-                        <div class="acquire-date">${dateStr}</div>
                     </div>
                     `;
                 });
@@ -1745,6 +1783,7 @@
                     <div class="pity-info">UP池保底说明：连续60次未获取6星后概率提升至4%，之后每次累加2.5%，最多70次必出6星。当前已垫 ${stats.type3PityCount} 抽，距概率提升还有 ${Math.max(0, 60 - stats.type3PityCount)} 抽，距保底还有 ${Math.max(0, 70 - stats.type3PityCount)} 抽。湖的涟漪保底说明：保底次数与同类征集共享，活动结束不清零，最多70次必出6星。当前已垫 ${stats.type12PityCount || 0} 抽，距保底还有 ${Math.max(0, 70 - (stats.type12PityCount || 0))} 抽。</div>
                 </div>
                 <div class="pool-list">${poolsHtml}</div>
+                <button class="back-to-top" id="backToTop" onclick="scrollToTop()">↑</button>
             `;
 
             document.getElementById('content').innerHTML = html;
@@ -3068,6 +3107,21 @@
             
             renderStats();
         }
+
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.addEventListener('scroll', function() {
+            const backToTopBtn = document.getElementById('backToTop');
+            if (backToTopBtn) {
+                if (window.scrollY > 300) {
+                    backToTopBtn.classList.add('show');
+                } else {
+                    backToTopBtn.classList.remove('show');
+                }
+            }
+        });
     </script>
 </body>
 </html>
