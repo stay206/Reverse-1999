@@ -1745,15 +1745,15 @@
                 <div class="toggle-bar">
                     <div class="toggle-switch" onclick="toggleViewMode()">
                         <span class="toggle-label">卡片方式</span>
-                        <div class="toggle-slider" id="toggleViewMode"></div>
+                        <div class="toggle-slider ${viewMode === 'card' ? 'active' : ''}" id="toggleViewMode"></div>
                     </div>
                     <div class="toggle-switch" onclick="toggleNoSixStarPool()">
                         <span class="toggle-label">隐藏空池</span>
-                        <div class="toggle-slider" id="toggleNoSixStar"></div>
+                        <div class="toggle-slider ${hideNoSixStar ? 'active' : ''}" id="toggleNoSixStar"></div>
                     </div>
                     <div class="toggle-switch" onclick="toggleTimeMode()">
                         <span class="toggle-label">按时间展示</span>
-                        <div class="toggle-slider" id="toggleTimeMode"></div>
+                        <div class="toggle-slider ${timeMode ? 'active' : ''}" id="toggleTimeMode"></div>
                     </div>
                 </div>
                 <div class="stats-bar">
