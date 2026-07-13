@@ -1841,7 +1841,9 @@
             
             renderEditPoolUpList(poolName);
             
-            document.getElementById('editPoolModal').classList.add('active');
+            setTimeout(() => {
+                document.getElementById('editPoolModal').classList.add('active');
+            }, 50);
         }
         
         function populateEditPoolUpSelect() {
