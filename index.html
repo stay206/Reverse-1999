@@ -2134,9 +2134,7 @@
             closeEditItemModal();
             await loadCharacterData();
             
-            const backup = localStorage.getItem('pageData_backup');
             if (backup) {
-                const pageData = parseBackupData(backup);
                 const stats = analyzeData(pageData, poolUpMap);
                 render(stats);
             }
