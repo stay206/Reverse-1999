@@ -1235,7 +1235,7 @@
                 }
             }
 
-            const text = await fetchText('pageData.josn');
+            const text = await fetchText('pageData.json');
             const lines = text.trim().split(/\r?\n/);
             const data = [];
             lines.forEach(line => {
@@ -1247,6 +1247,11 @@
                     console.warn('Failed to parse line:', line, e);
                 }
             });
+            
+            if (data.length > 0) {
+                await savePageData(data);
+            }
+            
             return data;
         }
 
