@@ -185,7 +185,7 @@
         .char-icon img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: top;
             border-radius: 8px;
         }
 
@@ -1944,6 +1944,18 @@
             
             let pageData = parseBackupData(backup);
             
+            let hasUpChanged = false;
+            const upKey = `${newPoolType}|${newPoolName}`;
+            if (poolUpMap[editingPoolName]) {
+                const currentUpStr = JSON.stringify(poolUpMap[editingPoolName]);
+                const originalKey = `${pageData.find(item => item.poolName === editingPoolName)?.poolType || newPoolType}|${editingPoolName}`;
+                const originalUp = originalPoolUpMap[editingPoolName] || {};
+                const originalUpStr = JSON.stringify(originalUp);
+                if (currentUpStr !== originalUpStr) {
+                    hasUpChanged = true;
+                }
+            }
+            
             pageData.forEach(item => {
                 if (item.poolName === editingPoolName) {
                     item.poolType = newPoolType;
@@ -1965,6 +1977,10 @@
             if (token) {
                 try {
                     const changedPools = getChangedPools(pageData);
+                    
+                    if (hasUpChanged && !changedPools.includes(upKey)) {
+                        changedPools.push(upKey);
+                    }
                     
                     const currentPoolData = {};
                     pageData.forEach(record => {
