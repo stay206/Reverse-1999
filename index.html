@@ -1236,17 +1236,28 @@
             }
 
             const text = await fetchText('pageData.json');
-            const lines = text.trim().split(/\r?\n/);
-            const data = [];
-            lines.forEach(line => {
-                try {
-                    const jsonStr = line.trim().replace(/,$/, '');
-                    const obj = JSON.parse(jsonStr);
-                    data.push(obj);
-                } catch (e) {
-                    console.warn('Failed to parse line:', line, e);
+            let data = [];
+            
+            try {
+                data = JSON.parse(text);
+                if (!Array.isArray(data)) {
+                    data = [data];
                 }
-            });
+            } catch (e) {
+                const lines = text.trim().split(/\r?\n/);
+                data = [];
+                lines.forEach(line => {
+                    try {
+                        const jsonStr = line.trim().replace(/,$/, '');
+                        if (jsonStr) {
+                            const obj = JSON.parse(jsonStr);
+                            data.push(obj);
+                        }
+                    } catch (err) {
+                        console.warn('Failed to parse line:', line, err);
+                    }
+                });
+            }
             
             if (data.length > 0) {
                 await savePageData(data);
