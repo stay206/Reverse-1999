@@ -940,9 +940,9 @@
             <span class="action-btn-icon">↻</span>
             <span class="action-btn-text">更新</span>
         </div>
-        <div class="action-btn share" onclick="openEditModal()">
+        <div class="action-btn share" id="editSaveBtn" onclick="openEditModal()">
             <span class="action-btn-icon">✏️</span>
-            <span class="action-btn-text">修改</span>
+            <span class="action-btn-text" id="editSaveBtnText">修改</span>
         </div>
         <div class="action-btn share" onclick="openSettingsModal()">
             <span class="action-btn-icon">⚙️</span>
@@ -1595,19 +1595,7 @@
 
         async function openEditModal() {
             if (isEditMode) {
-                if (hasDataChanged()) {
-                    const result = confirm('检测到数据已修改，是否保存后退出？');
-                    if (result) {
-                        await saveChanges();
-                    }
-                }
-                isEditMode = false;
-                document.body.classList.remove('edit-mode');
-                document.body.classList.remove('card-mode');
-                const editToggle = document.getElementById('cardModeToggle');
-                if (editToggle) editToggle.checked = false;
-                document.getElementById('addPoolBtnContainer').style.display = 'none';
-                renderStats();
+                await saveAndExitEditMode();
                 return;
             }
             
@@ -1630,6 +1618,32 @@
             document.body.classList.add('card-mode');
             const editToggle = document.getElementById('cardModeToggle');
             if (editToggle) editToggle.checked = true;
+            
+            const editSaveBtn = document.getElementById('editSaveBtn');
+            const editSaveBtnText = document.getElementById('editSaveBtnText');
+            editSaveBtn.onclick = saveAndExitEditMode;
+            editSaveBtnText.textContent = '保存';
+            
+            renderStats();
+        }
+        
+        async function saveAndExitEditMode() {
+            if (hasDataChanged()) {
+                await saveChanges();
+            }
+            
+            isEditMode = false;
+            document.body.classList.remove('edit-mode');
+            document.body.classList.remove('card-mode');
+            const editToggle = document.getElementById('cardModeToggle');
+            if (editToggle) editToggle.checked = false;
+            document.getElementById('addPoolBtnContainer').style.display = 'none';
+            
+            const editSaveBtn = document.getElementById('editSaveBtn');
+            const editSaveBtnText = document.getElementById('editSaveBtnText');
+            editSaveBtn.onclick = openEditModal;
+            editSaveBtnText.textContent = '修改';
+            
             renderStats();
         }
 
@@ -1931,7 +1945,7 @@
             editingPoolName = null;
         }
 
-        async function saveEditPool() {
+        function saveEditPool() {
             if (!editingPoolName) return;
             
             const newPoolType = parseInt(document.getElementById('editPoolType').value);
@@ -1946,18 +1960,6 @@
             if (!backup) return;
             
             let pageData = parseBackupData(backup);
-            
-            let hasUpChanged = false;
-            const upKey = `${newPoolType}|${newPoolName}`;
-            if (poolUpMap[editingPoolName]) {
-                const currentUpStr = JSON.stringify(poolUpMap[editingPoolName]);
-                const originalKey = `${pageData.find(item => item.poolName === editingPoolName)?.poolType || newPoolType}|${editingPoolName}`;
-                const originalUp = originalPoolUpMap[editingPoolName] || {};
-                const originalUpStr = JSON.stringify(originalUp);
-                if (currentUpStr !== originalUpStr) {
-                    hasUpChanged = true;
-                }
-            }
             
             pageData.forEach(item => {
                 if (item.poolName === editingPoolName) {
@@ -1975,51 +1977,6 @@
             
             closeEditPoolModal();
             renderStats();
-            
-            const token = getGitHubToken();
-            if (token) {
-                try {
-                    const changedPools = getChangedPools(pageData);
-                    
-                    if (hasUpChanged && !changedPools.includes(upKey)) {
-                        changedPools.push(upKey);
-                    }
-                    
-                    const currentPoolData = {};
-                    pageData.forEach(record => {
-                        const key = `${record.poolType}|${record.poolName}`;
-                        if (!currentPoolData[key]) {
-                            currentPoolData[key] = [];
-                        }
-                        currentPoolData[key].push(record);
-                    });
-                    
-                    const deletedPools = [];
-                    for (const key of Object.keys(originalPoolData)) {
-                        if (!currentPoolData[key]) {
-                            const sepIdx = key.indexOf('|');
-                            const poolType = key.substring(0, sepIdx);
-                            const poolName = key.substring(sepIdx + 1);
-                            deletedPools.push({ poolType, poolName });
-                        }
-                    }
-                    
-                    if (changedPools.length > 0 || deletedPools.length > 0) {
-                        const result = await pushPoolDataToGitHub(pageData, changedPools, deletedPools);
-                        const msg = [];
-                        if (result.pushedCount > 0) msg.push(`已推送 ${result.pushedCount} 个文件`);
-                        if (result.deletedCount > 0) msg.push(`已删除 ${result.deletedCount} 个文件`);
-                        alert(`修改已保存\n${msg.join('，')} 到 GitHub`);
-                    } else {
-                        alert('数据未发生变化，无需推送');
-                    }
-                } catch (e) {
-                    console.error('推送失败:', e);
-                    alert('修改已保存到本地，但推送 GitHub 失败，请检查网络或 Token 设置');
-                }
-            } else {
-                alert('修改已保存到本地\n请在设置中配置 GitHub Token 以同步到仓库');
-            }
         }
 
         let editingItemData = null;
