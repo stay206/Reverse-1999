@@ -1175,7 +1175,7 @@
         let isEditMode = false;
 
         async function fetchText(url) {
-            const response = await fetch(url);
+            const response = await fetch(url + '?t=' + Date.now(), { cache: 'no-cache' });
             return response.text();
         }
 
@@ -1660,14 +1660,29 @@
             editSaveBtn.onclick = openEditModal;
             editSaveBtnText.textContent = '修改';
             
-            renderStats();
+            const backup = localStorage.getItem('pageData_backup');
+            if (backup) {
+                const pageData = parseBackupData(backup);
+                const stats = analyzeData(pageData, poolUpMap);
+                render(stats);
+            } else {
+                renderStats();
+            }
         }
 
         function closeEditModal() {
             isEditMode = false;
             document.body.classList.remove('edit-mode');
             document.getElementById('addPoolBtnContainer').style.display = 'none';
-            renderStats();
+            
+            const backup = localStorage.getItem('pageData_backup');
+            if (backup) {
+                const pageData = parseBackupData(backup);
+                const stats = analyzeData(pageData, poolUpMap);
+                render(stats);
+            } else {
+                renderStats();
+            }
         }
 
         function hasDataChanged() {
