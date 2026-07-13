@@ -1856,7 +1856,13 @@
             renderEditPoolUpList(poolName);
             
             setTimeout(() => {
-                document.getElementById('editPoolModal').classList.add('active');
+                const modal = document.getElementById('editPoolModal');
+                modal.classList.add('active');
+                modal.style.display = 'flex';
+                modal.style.opacity = '1';
+                modal.style.visibility = 'visible';
+                const content = modal.querySelector('.modal-content');
+                if (content) content.style.transform = 'scale(1)';
             }, 50);
         }
         
@@ -1941,7 +1947,13 @@
         }
 
         function closeEditPoolModal() {
-            document.getElementById('editPoolModal').classList.remove('active');
+            const modal = document.getElementById('editPoolModal');
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+            modal.style.opacity = '0';
+            modal.style.visibility = 'hidden';
+            const content = modal.querySelector('.modal-content');
+            if (content) content.style.transform = 'scale(0.9)';
             editingPoolName = null;
         }
 
