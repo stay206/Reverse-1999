@@ -286,6 +286,30 @@
             background: linear-gradient(90deg, #8b2323, #a83232);
         }
 
+        .draw-badge.green {
+            background: linear-gradient(90deg, #4a7c23, #6b9e31);
+        }
+
+        .draw-badge.green span {
+            color: #d4e8b8;
+        }
+
+        .draw-badge.yellow {
+            background: linear-gradient(90deg, #d4a574, #b8966a);
+        }
+
+        .draw-badge.yellow span {
+            color: #fff8e7;
+        }
+
+        .draw-badge.red {
+            background: linear-gradient(90deg, #a83232, #8b2323);
+        }
+
+        .draw-badge.red span {
+            color: #ffd6d6;
+        }
+
         .bad-tag {
             background: linear-gradient(90deg, #8b2323, #a83232);
             color: #fff;
@@ -306,6 +330,40 @@
             font-weight: 600;
             margin-left: 5px;
             white-space: nowrap;
+        }
+
+        .luck-tag {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 5px;
+            line-height: 1;
+        }
+
+        .luck-tag.super-good {
+            background: linear-gradient(90deg, #4a7c23, #6b9e31);
+            color: #fff;
+        }
+
+        .luck-tag.good {
+            background: linear-gradient(90deg, #6b9e31, #8cb850);
+            color: #fff;
+        }
+
+        .luck-tag.normal {
+            background: linear-gradient(90deg, #d4a574, #b8966a);
+            color: #fff;
+        }
+
+        .luck-tag.bad {
+            background: linear-gradient(90deg, #c75050, #a83232);
+            color: #fff;
+        }
+
+        .luck-tag.super-bad {
+            background: linear-gradient(90deg, #8b2323, #6b1a1a);
+            color: #fff;
         }
 
         .prob-tag {
@@ -1454,18 +1512,27 @@
             return '';
         }
 
+        function getDrawLevel(draws) {
+            if (draws <= 10) return { level: 'green', luck: 'super-good', text: '超欧' };
+            if (draws <= 20) return { level: 'green', luck: 'good', text: '欧' };
+            if (draws <= 40) return { level: 'yellow', luck: 'normal', text: '正常' };
+            if (draws <= 60) return { level: 'red', luck: 'bad', text: '非' };
+            return { level: 'red', luck: 'super-bad', text: '超非' };
+        }
+
         function renderPoolItem(poolName, poolData) {
             const hasSixStar = poolData.sixStars.length > 0;
             const sixStarHtml = `<div class="six-star-list">${poolData.sixStars.map(s => {
                 const widthPercent = Math.min((s.draws / 70) * 100, 100);
-                const badgeClass = s.isAbnormal ? 'abnormal' : (s.isSuperBad ? 'super-bad' : '');
+                const drawLevel = getDrawLevel(s.draws);
+                const badgeClass = s.isAbnormal ? 'abnormal' : (s.isSuperBad ? 'super-bad' : drawLevel.level);
                 let tagHtml = '';
                 if (s.isAbnormal) {
                     tagHtml = '<span class="bad-tag">数据异常</span>';
                 } else if (s.isBad) {
                     tagHtml = '<span class="bad-tag">歪</span>';
-                } else if (s.isSuperBad) {
-                    tagHtml = '<span class="bad-tag">超非</span>';
+                } else {
+                    tagHtml = `<span class="luck-tag ${drawLevel.luck}">${drawLevel.text}</span>`;
                 }
                 const probHtml = s.prob && !s.isAbnormal ? `<span class="prob-tag">${s.prob}</span>` : '';
                 return `
