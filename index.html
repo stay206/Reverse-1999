@@ -1316,6 +1316,9 @@
 
         async function fetchText(url) {
             const response = await fetch(url + '?t=' + Date.now(), { cache: 'no-cache' });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}, url: ${url}`);
+            }
             return response.text();
         }
 
@@ -1375,35 +1378,45 @@
                 }
             }
 
-            const text = await fetchText('pageData.json');
-            let data = [];
-            
             try {
-                data = JSON.parse(text);
-                if (!Array.isArray(data)) {
-                    data = [data];
+                const text = await fetchText('pageData.json');
+                
+                if (!text || text.trim().startsWith('<') || text.trim().startsWith('Oops')) {
+                    throw new Error('Server returned non-JSON response: ' + text.substring(0, 100));
                 }
-            } catch (e) {
-                const lines = text.trim().split(/\r?\n/);
-                data = [];
-                lines.forEach(line => {
-                    try {
-                        const jsonStr = line.trim().replace(/,$/, '');
-                        if (jsonStr) {
-                            const obj = JSON.parse(jsonStr);
-                            data.push(obj);
-                        }
-                    } catch (err) {
-                        console.warn('Failed to parse line:', line, err);
+                
+                let data = [];
+                
+                try {
+                    data = JSON.parse(text);
+                    if (!Array.isArray(data)) {
+                        data = [data];
                     }
-                });
+                } catch (e) {
+                    const lines = text.trim().split(/\r?\n/);
+                    data = [];
+                    lines.forEach(line => {
+                        try {
+                            const jsonStr = line.trim().replace(/,$/, '');
+                            if (jsonStr) {
+                                const obj = JSON.parse(jsonStr);
+                                data.push(obj);
+                            }
+                        } catch (err) {
+                            console.warn('Failed to parse line:', line, err);
+                        }
+                    });
+                }
+                
+                if (data.length > 0) {
+                    await savePageData(data);
+                }
+                
+                return data;
+            } catch (e) {
+                console.error('Failed to load pageData.json:', e);
+                throw e;
             }
-            
-            if (data.length > 0) {
-                await savePageData(data);
-            }
-            
-            return data;
         }
 
         async function savePageData(data) {
@@ -2943,8 +2956,15 @@
             }
 
             if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(`GitHub API错误: ${errData.message || response.statusText}`);
+                let errMsg = response.statusText;
+                try {
+                    const errData = await response.json();
+                    errMsg = errData.message || errMsg;
+                } catch (e) {
+                    const text = await response.text();
+                    errMsg = text.substring(0, 200);
+                }
+                throw new Error(`GitHub API错误: ${errMsg}`);
             }
 
             return true;
@@ -2989,8 +3009,15 @@
             });
 
             if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(`GitHub API错误: ${errData.message || response.statusText}`);
+                let errMsg = response.statusText;
+                try {
+                    const errData = await response.json();
+                    errMsg = errData.message || errMsg;
+                } catch (e) {
+                    const text = await response.text();
+                    errMsg = text.substring(0, 200);
+                }
+                throw new Error(`GitHub API错误: ${errMsg}`);
             }
 
             return true;
