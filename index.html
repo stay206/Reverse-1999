@@ -1249,6 +1249,7 @@
                         <option value="6">限定征集</option>
                         <option value="7">限时活动征集</option>
                         <option value="12">湖的涟漪征集</option>
+                        <option value="21">联动征集</option>
                     </select>
                 </div>
                 <div style="margin-bottom:15px;">
@@ -1545,6 +1546,10 @@
                         if (hasSummonType) pools[poolName].currentDraw++;
                         currentDraw = savedDraws || pools[poolName].currentDraw;
                         resetCurrentDraw = () => { pools[poolName].currentDraw = 0; };
+                    } else if (poolType === 21) {
+                        if (hasSummonType) pools[poolName].currentDraw++;
+                        currentDraw = savedDraws || pools[poolName].currentDraw;
+                        resetCurrentDraw = () => { pools[poolName].currentDraw = 0; };
                     } else {
                         if (hasSummonType) pools[poolName].currentDraw++;
                         currentDraw = savedDraws || pools[poolName].currentDraw;
@@ -1805,7 +1810,7 @@
                             <div class="stat-label">湖涟漪已垫</div>
                         </div>
                     </div>
-                    <div class="pity-info">UP池保底说明：连续60次未获取6星后概率提升至4%，之后每次累加2.5%，最多70次必出6星。当前已垫 ${stats.type3PityCount} 抽，距概率提升还有 ${Math.max(0, 60 - stats.type3PityCount)} 抽，距保底还有 ${Math.max(0, 70 - stats.type3PityCount)} 抽。湖的涟漪保底说明：保底次数与同类征集共享，活动结束不清零，最多70次必出6星。当前已垫 ${stats.type12PityCount || 0} 抽，距保底还有 ${Math.max(0, 70 - (stats.type12PityCount || 0))} 抽。</div>
+                    <div class="pity-info">UP池保底说明：连续60次未获取6星后概率提升至4%，之后每次累加2.5%，最多70次必出6星。当前已垫 ${stats.type3PityCount} 抽，距概率提升还有 ${Math.max(0, 60 - stats.type3PityCount)} 抽，距保底还有 ${Math.max(0, 70 - stats.type3PityCount)} 抽。湖的涟漪保底说明：保底次数与同类征集共享，活动结束不清零，最多70次必出6星。当前已垫 ${stats.type12PityCount || 0} 抽，距保底还有 ${Math.max(0, 70 - (stats.type12PityCount || 0))} 抽。联动征集保底说明：保底次数单独累积，与任意类型征集不共享，活动结束后保底次数清零，不继承至同类或其他类型征集。</div>
                 </div>
                 <div class="pool-list">${poolsHtml}</div>
             `;
