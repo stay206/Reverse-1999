@@ -175,6 +175,12 @@ python -m http.server 8001
 3. 点击"保存"按钮
 4. 之后在编辑模式下修改数据并保存时，会自动推送到 GitHub
 
+## 数据来源
+
+角色信息来源：
+- https://res1999.huijiwiki.com/
+- https://uttu.merui.net/
+
 ---
 
 > 项目数据来源于个人游戏抽卡记录，仅供参考。
