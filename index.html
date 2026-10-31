@@ -1107,8 +1107,8 @@
                 <div class="modal-hint">例：https://game-re-service.sl916.com/query/......</div>
                 <button class="modal-btn" onclick="fetchAndMergeData()">获取并合并数据</button>
                 <div id="updateResult" class="update-result"></div>
-                <div id="updatePasteArea" style="display:none; margin-top:12px;">
-                    <div class="modal-hint">代理无法访问接口。请在新标签页打开上方链接，全选复制页面上显示的内容，粘贴到下方：</div>
+                <div id="updatePasteArea" style="margin-top:16px;">
+                    <div class="modal-hint">或直接粘贴接口返回的 JSON 内容：</div>
                     <textarea id="updatePasteInput" class="modal-input" placeholder="在此粘贴 JSON 内容" style="width:100%; height:120px; margin-top:8px; resize:vertical; font-family:monospace; font-size:12px;"></textarea>
                     <button class="modal-btn" onclick="mergePastedData()">解析并合并粘贴内容</button>
                 </div>
@@ -1851,10 +1851,6 @@
         initApp();
 
         function openModal() {
-            document.getElementById('updatePasteArea').style.display = 'none';
-            document.getElementById('updatePasteInput').value = '';
-            document.getElementById('updateResult').className = 'update-result';
-            document.getElementById('updateResult').innerHTML = '';
             document.getElementById('updateModal').classList.add('active');
         }
 
@@ -2885,7 +2881,6 @@
                 resultDiv.innerHTML = authError
                     ? '获取失败：链接已失效或请求过于频繁<br>请重新获取征集分析链接后再试'
                     : `获取失败：所有代理服务均无法访问<br>${lastError ? lastError.message : ''}`;
-                document.getElementById('updatePasteArea').style.display = 'block';
                 return;
             }
 
@@ -2944,8 +2939,6 @@
                     closeModal();
                     resultDiv.className = 'update-result';
                     resultDiv.innerHTML = '';
-                    document.getElementById('updatePasteArea').style.display = 'none';
-                    document.getElementById('updatePasteInput').value = '';
                 }, 1500);
 
             } catch (error) {
