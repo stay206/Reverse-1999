@@ -3007,8 +3007,9 @@
 
         async function githubGetFileSha(path) {
             try {
-                const response = await fetch(`${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}?ref=${GITHUB_BRANCH}`, {
-                    headers: githubHeaders()
+                const response = await fetch(`${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}?ref=${GITHUB_BRANCH}&t=${Date.now()}`, {
+                    headers: githubHeaders(),
+                    cache: 'no-store'
                 });
                 if (response.ok) {
                     const data = await response.json();
@@ -3027,47 +3028,51 @@
                 return false;
             }
 
-            let sha = await githubGetFileSha(path);
             const body = {
                 message: message,
                 content: encodeBase64(content),
                 branch: GITHUB_BRANCH
             };
-            if (sha) {
-                body.sha = sha;
-            }
 
-            let response = await fetch(`${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`, {
-                method: 'PUT',
-                headers: githubHeaders(),
-                body: JSON.stringify(body)
-            });
+            const maxAttempts = 4;
+            let sha = await githubGetFileSha(path);
 
-            if (response.status === 409) {
-                sha = await githubGetFileSha(path);
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
                 if (sha) {
                     body.sha = sha;
-                    response = await fetch(`${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`, {
-                        method: 'PUT',
-                        headers: githubHeaders(),
-                        body: JSON.stringify(body)
-                    });
+                } else {
+                    delete body.sha;
                 }
+
+                const response = await fetch(`${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`, {
+                    method: 'PUT',
+                    headers: githubHeaders(),
+                    body: JSON.stringify(body)
+                });
+
+                if (response.status === 409 && attempt < maxAttempts) {
+                    console.warn(`推送冲突，第 ${attempt} 次重试: ${path}`);
+                    await new Promise(resolve => setTimeout(resolve, 600 * attempt));
+                    sha = await githubGetFileSha(path);
+                    continue;
+                }
+
+                if (!response.ok) {
+                    let errMsg = response.statusText;
+                    try {
+                        const errData = await response.json();
+                        errMsg = errData.message || errMsg;
+                    } catch (e) {
+                        const text = await response.text();
+                        errMsg = text.substring(0, 200);
+                    }
+                    throw new Error(`GitHub API错误: ${errMsg}`);
+                }
+
+                return true;
             }
 
-            if (!response.ok) {
-                let errMsg = response.statusText;
-                try {
-                    const errData = await response.json();
-                    errMsg = errData.message || errMsg;
-                } catch (e) {
-                    const text = await response.text();
-                    errMsg = text.substring(0, 200);
-                }
-                throw new Error(`GitHub API错误: ${errMsg}`);
-            }
-
-            return true;
+            throw new Error('GitHub API错误: 推送冲突重试失败');
         }
 
         const POOL_UP_CHARACTERS = {
