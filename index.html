@@ -2809,40 +2809,73 @@
             resultDiv.className = 'update-result loading';
             resultDiv.innerHTML = '正在获取数据...';
 
-            const proxyUrls = [
-                'https://api.allorigins.win/raw?url=',
-                'https://api.allorigins.es/raw?url=',
-                'https://corsproxy.io/?url='
+            const proxies = [
+                {
+                    name: 'AllOrigins',
+                    build: (u) => 'https://api.allorigins.win/get?url=' + encodeURIComponent(u),
+                    wrapped: true
+                },
+                {
+                    name: 'CodeTabs',
+                    build: (u) => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
+                    wrapped: false
+                },
+                {
+                    name: 'AllOrigins Raw',
+                    build: (u) => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+                    wrapped: false
+                }
             ];
+            const attemptsPerProxy = 2;
 
             let text = null;
             let lastError = null;
+            let authError = false;
 
-            for (let i = 0; i < proxyUrls.length; i++) {
-                try {
-                    const proxyUrl = proxyUrls[i] + encodeURIComponent(link);
-                    resultDiv.innerHTML = `正在获取数据... (代理 ${i + 1}/${proxyUrls.length})`;
-                    
-                    const response = await fetch(proxyUrl, { 
-                        timeout: 10000,
-                        headers: { 'Accept': 'application/json' }
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
+            for (let i = 0; i < proxies.length && !text; i++) {
+                for (let attempt = 1; attempt <= attemptsPerProxy && !text; attempt++) {
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), 12000);
+                    try {
+                        resultDiv.innerHTML = `正在获取数据... (代理 ${i + 1}/${proxies.length}，第 ${attempt} 次)`;
+
+                        const response = await fetch(proxies[i].build(link), {
+                            signal: controller.signal,
+                            cache: 'no-store',
+                            headers: { 'Accept': 'application/json' }
+                        });
+                        clearTimeout(timer);
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+
+                        let body = await response.text();
+                        if (proxies[i].wrapped) {
+                            const outer = JSON.parse(body);
+                            body = outer.contents;
+                            if (!body) throw new Error('返回内容为空');
+                        }
+
+                        if (body.indexOf('没有权限') !== -1) {
+                            authError = true;
+                            throw new Error('链接无权限（可能已过期或请求过于频繁）');
+                        }
+
+                        text = body;
+                    } catch (error) {
+                        clearTimeout(timer);
+                        lastError = error;
+                        console.warn(`代理 ${i + 1} 第 ${attempt} 次失败:`, error.message);
                     }
-                    
-                    text = await response.text();
-                    break;
-                } catch (error) {
-                    lastError = error;
-                    console.warn(`代理 ${i + 1} 失败:`, error.message);
                 }
             }
 
             if (!text) {
                 resultDiv.className = 'update-result error';
-                resultDiv.innerHTML = `获取失败：所有代理服务均无法访问<br>${lastError ? lastError.message : ''}`;
+                resultDiv.innerHTML = authError
+                    ? '获取失败：链接已失效或请求过于频繁<br>请重新获取征集分析链接后再试'
+                    : `获取失败：所有代理服务均无法访问<br>${lastError ? lastError.message : ''}`;
                 return;
             }
 
